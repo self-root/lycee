@@ -560,8 +560,6 @@ std::size_t DatabaseAccess::indexOF(std::vector<Subject> &subjects, int id)
 
     for (std::size_t i = 0; i < subjects.size(); i++)
     {
-        qDebug() << "Requested id: " << id;
-        qDebug() << "Subject: " << subjects.at(i).subjectName() << " id: " << subjects.at(i).subjectId();
         if (subjects.at(i).subjectId() == id)
         {
             index = i;
@@ -673,6 +671,7 @@ void DatabaseAccess::addTrimesterAVG(TrimesterAVG &trimAVG)
 
     setErrorMessage(QString("Error while Adding new student trimester average to the database.\n%2")
                        .arg(query.lastError().text()));
+    qDebug() << errorMessage;
 }
 
 void DatabaseAccess::updateTrimAVG(const TrimesterAVG &trimAVG)
@@ -687,12 +686,15 @@ void DatabaseAccess::updateTrimAVG(const TrimesterAVG &trimAVG)
     query.bindValue(":avg", trimAVG.avg);
     query.bindValue(":rank", trimAVG.rank);
     query.bindValue(":trimester", trimAVG.trimester);
-    query.bindValue(":f_studend", trimAVG.studentid);
+    query.bindValue(":f_student", trimAVG.studentid);
     query.bindValue(":total", trimAVG.total);
     query.bindValue(":id", trimAVG.id);
 
     if (!query.exec())
+    {
         setErrorMessage(QString("Trimester average update error: %1").arg(query.lastError().text()));
+        qDebug() << errorMessage;
+    }
 }
 
 void DatabaseAccess::updateSubject(const Subject &subject)
@@ -759,6 +761,52 @@ void DatabaseAccess::getGrade(GradeMetaData &grade, int studentID, int subjectID
     else {
         setErrorMessage(QString("Grade reading error.%2")
                             .arg(query.lastError().text()));
+        qDebug() << errorMessage;
+    }
+}
+
+void DatabaseAccess::trimAVG(TrimesterAVG &avg)
+{
+    QSqlQuery query;
+    query.prepare(R"(
+        SELECT id
+        FROM trimavg
+        WHERE f_student = :f_student
+        AND trimester = :trimester
+    )");
+
+    query.bindValue(":f_student", avg.studentid);
+    query.bindValue(":trimester", avg.trimester);
+    if (query.exec())
+    {
+        if (query.next())
+        {
+            avg.id = query.value("id").toInt();
+        }
+    }
+    else
+    {
+        setErrorMessage(QString("Trimester average reading error.%2")
+                            .arg(query.lastError().text()));
+        qDebug() << errorMessage;
+    }
+}
+
+void DatabaseAccess::updateGrade20(int gradeID, double grade20)
+{
+    QSqlQuery query;
+    query.prepare(R"(
+        UPDATE grade
+        SET grade20 = :grade20
+        WHERE id = :id
+    )");
+
+    query.bindValue(":grade20", grade20);
+    query.bindValue(":id", gradeID);
+
+    if (!query.exec())
+    {
+        setErrorMessage(QString("Grade20 update error %1").arg(query.lastError().text()));
         qDebug() << errorMessage;
     }
 }

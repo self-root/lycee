@@ -17,8 +17,6 @@ void GradesTableView::currentChanged(const QModelIndex &current, const QModelInd
     if (current.isValid())
     {
         QString studentName = current.sibling(current.row(), 0).data().toString();
-        qDebug() << "Row selected: " << current.row();
-        qDebug() << "Student: " << current.sibling(current.row(), 0).data();
         Student student = model->studentFromName(studentName);
         emit studentSelected(student);
     }

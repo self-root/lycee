@@ -23,7 +23,7 @@ std::vector<TrimesterAVG> AVGCalculator::computeTrimesterAverage(std::vector<Stu
                 meta.skip = s_grade.skip();
                 meta.subjectName = s_grade.mSubject.subjectName();
                 meta.coef = s_grade.coef();
-                s_grade.setGrade20(s_grade.grade20() / s_grade.coef());
+                s_grade.setGrade20(meta.grade / s_grade.coef());
                 _grades.push_back(meta);
 
             }

@@ -1,6 +1,7 @@
 #include "gradelistmodel.h"
 #include "databaseaccess.h"
 #include "avgcalculator.h"
+#include "controller.h"
 
 GradeListModel::GradeListModel(QObject *parent)
     : QAbstractTableModel(parent)
@@ -182,16 +183,29 @@ TrimesterAVG GradeListModel::trimesterAvgFor(int studentID) const
 
 void GradeListModel::computeAVG()
 {
-    trimesterAVG = AVGCalculator::computeTrimesterAverage(studentsGrade, students, currentTrimester);
-    for (const TrimesterAVG &t : trimesterAVG)
-    {
-        qDebug() << "id: " << t.id << " total: " << t.total << " avg: " << t.avg;
-    }
+    std::vector<TrimesterAVG> trimAVGs = AVGCalculator::computeTrimesterAverage(studentsGrade, students, currentTrimester);
 
     //TODO: Get rank
-    setRanks(trimesterAVG);
+    setRanks(trimAVGs);
+    updateGrade20();
     //TODO: add/update trimAVG in the database
+    for (TrimesterAVG &avg : trimAVGs)
+    {
+        DatabaseAccess::instance()->trimAVG(avg);
+        if (avg.id > 0)
+        {
+            qDebug() << "Updating: " << avg.id << "s: " << avg.studentid << " t: " << avg.trimester << " total: " << avg.total;
+            DatabaseAccess::instance()->updateTrimAVG(avg);
+        }
+        else
+        {
+            qDebug() << "Adding new: " << avg.id << "s: " << avg.studentid << " t: " << avg.trimester << " total: " << avg.total;
+            DatabaseAccess::instance()->addTrimesterAVG(avg);
+        }
+    }
+    Controller::instance()->checkDbError();
     //TODO resetModel
+    loadModelData(currentTrimester, currentClass);
 }
 
 void GradeListModel::setRanks(std::vector<TrimesterAVG> &avgs)
@@ -219,6 +233,16 @@ void GradeListModel::studentGradeFromClipboard(GradeMetaData &grade, const QStri
     else {
         addGrade(grade, studentName);
     }
+}
+
+void GradeListModel::updateGrade20()
+{
+    for (const StudentGrade &grade : studentsGrade)
+    {
+        DatabaseAccess::instance()->updateGrade20(grade.getGradeID(), grade.grade20());
+    }
+
+    Controller::instance()->checkDbError();
 }
 
 void GradeListModel::addGrade(GradeMetaData &gradeMeta, const QString &studentName)

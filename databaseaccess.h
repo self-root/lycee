@@ -82,6 +82,10 @@ public:
 
     void getGrade(GradeMetaData &grade, int studentID, int subjectID, int trimester);
 
+    void trimAVG(TrimesterAVG &avg);
+
+    void updateGrade20(int gradeID, double grade20);
+
 };
 
 #endif // DATABASEACCESS_H

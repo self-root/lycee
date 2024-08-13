@@ -53,6 +53,8 @@ public:
 
     void studentGradeFromClipboard(GradeMetaData &grade, const QString &studentName);
 
+    void updateGrade20();
+
 
 
 private:
