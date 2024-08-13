@@ -3,6 +3,7 @@
 
 GradesTableView::GradesTableView(QTableView *parent) : QTableView(parent)
 {
+    setSelectionBehavior(QTableView::SelectRows);
     setSortingEnabled(true);
     proxyModel = new QSortFilterProxyModel;
     model = new GradeListModel;

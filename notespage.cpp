@@ -13,8 +13,10 @@ NotesPage::NotesPage(QWidget *parent)
     tabWidget = new QTabWidget;
     gradesView = new GradesTableView;
     tabWidget->addTab(gradesView, "Notes");
-    ui->verticalTableLayout->addWidget(tabWidget);
+    ui->mainLayout->addWidget(tabWidget);
     loadSchoolYear();
+
+    setupToolBar();
 
     QObject::connect(gradesView, &GradesTableView::studentSelected, this, &NotesPage::onStudentSelected);
 }
@@ -26,6 +28,7 @@ NotesPage::~NotesPage()
 
 void NotesPage::on_schoolYearCombo_activated(int index)
 {
+    Q_UNUSED(index)
     QString schoolYear = ui->schoolYearCombo->currentText();
     Controller::instance()->getKlassList(schoolYear);
     ui->classCombo->clear();
@@ -48,6 +51,7 @@ void NotesPage::on_classCombo_activated(int index)
 
 void NotesPage::on_trimestreCombo_activated(int index)
 {
+    Q_UNUSED(index)
     on_classCombo_activated(0);
 }
 
@@ -91,13 +95,28 @@ void NotesPage::clearGradeForm()
     ui->skipSubjectCheck->setDisabled(true);
 }
 
+void NotesPage::setupToolBar()
+{
+    toolbar = new QToolBar;
+    toolbar->setIconSize(QSize(32, 32));
+    toolbar->setMovable(true);
+    toolbar->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+    pasteAction = new QAction(QIcon(":/icons/images/paste.png"), "Coller");
+    computeAction = new QAction(QIcon(":/icons/images/calculator.png"), "Calculler Moyenne");
+    toolbar->addAction(pasteAction);
+    toolbar->addAction(computeAction);
+    ui->mainLayout->insertWidget(0, toolbar);
+
+    QObject::connect(pasteAction, &QAction::triggered, this, &NotesPage::onPaste);
+    QObject::connect(computeAction, &QAction::triggered, this, &NotesPage::onCompute);
+}
+
 
 void NotesPage::on_subjectCombo_activated(int index)
 {
     Q_UNUSED(index)
     setGradeData();
 }
-
 
 void NotesPage::on_saveGradeBtn_clicked()
 {
@@ -130,15 +149,9 @@ void NotesPage::on_saveGradeBtn_clicked()
     }
 }
 
-
-void NotesPage::on_pushButton_clicked()
+void NotesPage::onPaste(bool _)
 {
-    gradesView->model->computeAVG();
-}
-
-
-void NotesPage::on_pasteBtn_clicked()
-{
+    Q_UNUSED(_);
     QClipboard *clipboard = QApplication::clipboard();
     //qDebug() << clipboard->text();
     std::vector<ClipboardGrade> grades = ClipBoardParser::parseGradeClipboard(clipboard->text());
@@ -159,5 +172,11 @@ void NotesPage::on_pasteBtn_clicked()
         }
         Controller::instance()->checkDbError();
     }
+}
+
+void NotesPage::onCompute(bool _)
+{
+    Q_UNUSED(_);
+    gradesView->model->computeAVG();
 }
 

@@ -3,6 +3,8 @@
 
 #include <QWidget>
 #include <QTabWidget>
+#include <QToolBar>
+#include <QAction>
 
 #include "gradestableview.h"
 
@@ -36,9 +38,9 @@ private slots:
 
     void on_saveGradeBtn_clicked();
 
-    void on_pushButton_clicked();
+    void onPaste(bool _);
 
-    void on_pasteBtn_clicked();
+    void onCompute(bool _);
 
 private:
     Ui::NotesPage *ui;
@@ -46,7 +48,10 @@ private:
     GradesTableView *gradesView = nullptr;
     void loadSchoolYear();
     void clearGradeForm();
-
+    void setupToolBar();
+    QToolBar *toolbar = nullptr;
+    QAction *pasteAction = nullptr;
+    QAction *computeAction = nullptr;
     GradeMetaData currentGrade;
 
 };

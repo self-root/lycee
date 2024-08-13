@@ -32,9 +32,11 @@ public:
 
     Student studentByName(const QString &name);
 
+    void addStudentsFromClipboard(const std::vector<Student> &students);
+
 private:
     std::vector<Student> students;
-    int klassID;
+    int klassID = -1;
 };
 
 #endif // STUDENTLISTMODEL_H

@@ -251,3 +251,15 @@ Student StudentListModel::studentByName(const QString &name)
     }
     return student;
 }
+
+void StudentListModel::addStudentsFromClipboard(const std::vector<Student> &students)
+{
+    if (klassID < 0)
+        return;
+    for (const Student &s : students)
+    {
+        if (s.name() == studentByName(s.name()).name())
+            continue;
+        addStudent(s);
+    }
+}

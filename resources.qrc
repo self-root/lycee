@@ -13,6 +13,8 @@
         <file>images/whale_letter2.png</file>
         <file>images/male.svg</file>
         <file>images/female.svg</file>
+        <file>images/calculator.png</file>
+        <file>images/paste.png</file>
     </qresource>
     <qresource prefix="/data">
         <file>data/lyceedata</file>

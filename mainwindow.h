@@ -10,12 +10,6 @@
 #include "klassespage.h"
 #include "notespage.h"
 
-/*#include <QSql>
-#include <QSqlDatabase>
-#include <QDebug>
-#include <QSqlError>
-#include <QSqlQuery>*/
-
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE

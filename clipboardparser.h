@@ -2,6 +2,7 @@
 #define CLIPBOARDPARSER_H
 
 #include <QString>
+#include "student.h"
 
 struct Header
 {
@@ -16,11 +17,13 @@ struct ClipboardGrade : public Header
     double grade;
 };
 
+
 class ClipBoardParser
 {
 public:
     ClipBoardParser();
     static std::vector<ClipboardGrade> parseGradeClipboard(const QString &data);
+    static std::vector<Student> parseStudentsClipboard(const QString &data);
 };
 
 #endif // CLIPBOARDPARSER_H

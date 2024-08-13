@@ -1,8 +1,11 @@
 #include "studentstableview.h"
 #include "controller.h"
+#include "clipboardparser.h"
 
 #include <QDropEvent>
 #include <QMimeData>
+#include <QClipboard>
+#include <QApplication>
 
 StudentsTableView::StudentsTableView(QTableView *parent) : QTableView(parent)
 {
@@ -12,6 +15,7 @@ StudentsTableView::StudentsTableView(QTableView *parent) : QTableView(parent)
     proxyModel->setSourceModel(model);
     setSelectionBehavior(QAbstractItemView::SelectRows);
     this->setModel(proxyModel);
+    this->setupMenu();
 }
 
 void StudentsTableView::loadStudents(int id)
@@ -45,6 +49,11 @@ void StudentsTableView::dropEvent(QDropEvent *event)
     qDebug() << event->mimeData();
 }
 
+void StudentsTableView::contextMenuEvent(QContextMenuEvent *event)
+{
+    menu->exec(event->globalPos());
+}
+
 void StudentsTableView::onSaveStudent(Student student)
 {
     model->addStudent(student);
@@ -56,4 +65,31 @@ void StudentsTableView::onUpdateStudent(Student student)
     qDebug() << "Updating student: " << student.name() << "ID: " << student.id();
     model->updateStudent(student);
     Controller::instance()->checkDbError();
+}
+
+void StudentsTableView::onPasteAction(bool _)
+{
+    Q_UNUSED(_);
+    QClipboard *clipboard = QApplication::clipboard();
+
+    model->addStudentsFromClipboard(ClipBoardParser::parseStudentsClipboard(clipboard->text()));
+    Controller::instance()->checkDbError();
+
+}
+
+void StudentsTableView::setupMenu()
+{
+    menu = new QMenu(this);
+    addAction = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::ListAdd), "Ajouter");
+    editAction = new QAction("Editer");
+    removeAction = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::ListRemove),"Supprimer");
+    pasteAction = new QAction(QIcon(":/icons/images/paste.png"), "Coller");
+
+    menu->addAction(addAction);
+    menu->addAction(editAction);
+    menu->addAction(removeAction);
+    menu->addSeparator();
+    menu->addAction(pasteAction);
+
+    QObject::connect(pasteAction, &QAction::triggered, this, &StudentsTableView::onPasteAction);
 }
