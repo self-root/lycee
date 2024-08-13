@@ -80,6 +80,8 @@ public:
 
     void removeSubject(const Subject &subject);
 
+    void getGrade(GradeMetaData &grade, int studentID, int subjectID, int trimester);
+
 };
 
 #endif // DATABASEACCESS_H

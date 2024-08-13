@@ -38,6 +38,8 @@ private slots:
 
     void on_pushButton_clicked();
 
+    void on_pasteBtn_clicked();
+
 private:
     Ui::NotesPage *ui;
     QTabWidget *tabWidget = nullptr;

@@ -152,7 +152,7 @@ Subject GradeListModel::subjectFromName(const QString &subjectName)
     Subject subject;
     for (Subject &_subject : subjects)
     {
-        if (_subject.subjectName() == subjectName)
+        if (_subject.subjectName().compare(subjectName, Qt::CaseInsensitive) == 0)
             subject = _subject;
     }
 
@@ -199,6 +199,25 @@ void GradeListModel::setRanks(std::vector<TrimesterAVG> &avgs)
     for (std::size_t i = 0; i < avgs.size(); i++)
     {
         avgs.at(i).rank = i + 1;
+    }
+}
+
+void GradeListModel::studentGradeFromClipboard(GradeMetaData &grade, const QString &studentName)
+{
+    Subject subject = subjectFromName(grade.subjectName);
+    int trimester = currentTrimester;
+    Student student = studentFromName(studentName);
+    if (student.id() < 0)
+        return;
+
+    DatabaseAccess::instance()->getGrade(grade, student.id(), subject.subjectId(), trimester);
+    if (grade.id > 0)
+    {
+        updateGrade(grade);
+    }
+
+    else {
+        addGrade(grade, studentName);
     }
 }
 

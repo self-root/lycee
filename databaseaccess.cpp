@@ -733,4 +733,34 @@ void DatabaseAccess::removeSubject(const Subject &subject)
     }
 }
 
+void DatabaseAccess::getGrade(GradeMetaData &grade, int studentID, int subjectID, int trimester)
+{
+    QSqlQuery query;
+    query.prepare(R"(
+        SELECT  *
+        FROM grade
+        WHERE f_student = :f_student
+        AND  f_subject  = :f_subject
+        AND f_trimester  = :f_trimester
+    )");
+
+    query.bindValue(":f_student", studentID);
+    query.bindValue(":f_subject", subjectID);
+    query.bindValue(":f_trimester", trimester);
+
+    if (query.exec())
+    {
+        if (query.next())
+        {
+            grade.id = query.value("id").toInt();
+            grade.skip = query.value("skip").toBool();
+        }
+    }
+    else {
+        setErrorMessage(QString("Grade reading error.%2")
+                            .arg(query.lastError().text()));
+        qDebug() << errorMessage;
+    }
+}
+
 

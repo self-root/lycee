@@ -10,6 +10,7 @@ CONFIG += c++17
 
 SOURCES += \
     avgcalculator.cpp \
+    clipboardparser.cpp \
     controller.cpp \
     databaseaccess.cpp \
     gradelistmodel.cpp \
@@ -38,6 +39,7 @@ SOURCES += \
 
 HEADERS += \
     avgcalculator.h \
+    clipboardparser.h \
     controller.h \
     databaseaccess.h \
     gradelistmodel.h \

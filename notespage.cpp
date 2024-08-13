@@ -2,6 +2,8 @@
 #include "ui_notespage.h"
 #include "controller.h"
 #include "databaseaccess.h"
+#include "clipboardparser.h"
+#include <QClipboard>
 
 NotesPage::NotesPage(QWidget *parent)
     : QWidget(parent)
@@ -132,5 +134,30 @@ void NotesPage::on_saveGradeBtn_clicked()
 void NotesPage::on_pushButton_clicked()
 {
     gradesView->model->computeAVG();
+}
+
+
+void NotesPage::on_pasteBtn_clicked()
+{
+    QClipboard *clipboard = QApplication::clipboard();
+    //qDebug() << clipboard->text();
+    std::vector<ClipboardGrade> grades = ClipBoardParser::parseGradeClipboard(clipboard->text());
+    if (!grades.empty())
+    {
+        QString subjectName = "";
+        try {
+            subjectName = grades.at(0).name;
+        } catch (...) {
+            return;
+        }
+
+        for (std::size_t i = 1; i < grades.size(); ++i) {
+            GradeMetaData gradeMeta;
+            gradeMeta.grade = grades.at(i).grade;
+            gradeMeta.subjectName = subjectName;
+            gradesView->model->studentGradeFromClipboard(gradeMeta, grades.at(i).studentName);
+        }
+        Controller::instance()->checkDbError();
+    }
 }
 

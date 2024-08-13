@@ -51,6 +51,10 @@ public:
 
     void setRanks(std::vector<TrimesterAVG> &avgs);
 
+    void studentGradeFromClipboard(GradeMetaData &grade, const QString &studentName);
+
+
+
 private:
     std::vector<Student> students;
     std::vector<Subject> subjects;
