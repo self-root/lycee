@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
+    <width>565</width>
     <height>300</height>
    </rect>
   </property>
@@ -17,26 +17,6 @@
    <property name="spacing">
     <number>8</number>
    </property>
-   <item>
-    <layout class="QFormLayout" name="formLayout">
-     <item row="0" column="0">
-      <widget class="QLabel" name="label">
-       <property name="text">
-        <string>Annee Scholaire:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="1">
-      <widget class="QComboBox" name="schoolYearCombo">
-       <item>
-        <property name="text">
-         <string>--</string>
-        </property>
-       </item>
-      </widget>
-     </item>
-    </layout>
-   </item>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <property name="leftMargin">
@@ -52,6 +32,59 @@
       <number>6</number>
      </property>
      <item>
+      <layout class="QVBoxLayout" name="schoolyearLayout">
+       <property name="leftMargin">
+        <number>6</number>
+       </property>
+       <property name="topMargin">
+        <number>6</number>
+       </property>
+       <property name="rightMargin">
+        <number>6</number>
+       </property>
+       <property name="bottomMargin">
+        <number>6</number>
+       </property>
+       <item>
+        <widget class="QLabel" name="label_2">
+         <property name="text">
+          <string>Année scolaire</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="shoolYearBottoLayout">
+         <property name="leftMargin">
+          <number>6</number>
+         </property>
+         <property name="topMargin">
+          <number>6</number>
+         </property>
+         <property name="rightMargin">
+          <number>6</number>
+         </property>
+         <property name="bottomMargin">
+          <number>6</number>
+         </property>
+         <item>
+          <widget class="QLineEdit" name="schoolYearEdit">
+           <property name="placeholderText">
+            <string>Annee Scolaire</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="schoolYearBtn">
+           <property name="text">
+            <string>add</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </item>
+     <item>
       <layout class="QVBoxLayout" name="leftLayout">
        <property name="leftMargin">
         <number>6</number>
@@ -65,6 +98,13 @@
        <property name="bottomMargin">
         <number>6</number>
        </property>
+       <item>
+        <widget class="QLabel" name="label_3">
+         <property name="text">
+          <string>Classes</string>
+         </property>
+        </widget>
+       </item>
        <item>
         <layout class="QHBoxLayout" name="leftBottomLayout">
          <item>
@@ -100,6 +140,13 @@
         <number>6</number>
        </property>
        <item>
+        <widget class="QLabel" name="label_4">
+         <property name="text">
+          <string>Matières</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <layout class="QHBoxLayout" name="rightBottomLayout">
          <property name="leftMargin">
           <number>0</number>
@@ -117,6 +164,9 @@
           <widget class="QComboBox" name="subjectNameCombo">
            <property name="editable">
             <bool>true</bool>
+           </property>
+           <property name="placeholderText">
+            <string>Matière</string>
            </property>
           </widget>
          </item>

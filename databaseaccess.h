@@ -9,6 +9,8 @@
 #include "studentgrade.h"
 #include "trimesteravg.h"
 
+#include <QSqlDatabase>
+
 class DatabaseAccess : public QObject
 {
     Q_OBJECT
@@ -19,8 +21,9 @@ private:
     static DatabaseAccess *_instance;
     bool dbError = false;
     QString errorMessage;
-
+    const QString dbName = "lyceedata";
     void setErrorMessage(const QString &error);
+    void initDB(const QSqlDatabase &db);
 
 public:
     static DatabaseAccess *instance();
@@ -46,6 +49,10 @@ public:
 
     int schoolYearID(const QString &schoolYear);
 
+    void addSchoolYear(const QString &schoolYear);
+
+    void removeSchoolYear(const QString &schoolYear);
+
     void addClass(const QString &className, int schoolYearID);
 
     void addSubject(Subject &subject, int classID);
@@ -68,6 +75,10 @@ public:
     void addTrimesterAVG(TrimesterAVG &trimAVG);
 
     void updateTrimAVG(const TrimesterAVG &trimAVG);
+
+    void updateSubject(const Subject &subject);
+
+    void removeSubject(const Subject &subject);
 
 };
 

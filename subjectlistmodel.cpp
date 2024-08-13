@@ -1,5 +1,6 @@
 #include "subjectlistmodel.h"
 #include "databaseaccess.h"
+#include "controller.h"
 
 SubjectListModel::SubjectListModel(QObject *parent)
     : QAbstractTableModel(parent)
@@ -94,4 +95,23 @@ void SubjectListModel::addSubject(const QString &subjectName, int subjectCoef)
     DatabaseAccess::instance()->addSubject(subject, currentClasss);
     loadSubjectLists(currentClasss);
 
+}
+
+Subject SubjectListModel::subjectAt(int index) const
+{
+    return subjects.at(index);
+}
+
+void SubjectListModel::updateSubject(const Subject &subject)
+{
+    DatabaseAccess::instance()->updateSubject(subject);
+    Controller::instance()->checkDbError();
+    loadSubjectLists(currentClasss);
+}
+
+void SubjectListModel::removeSubject(const Subject &subject)
+{
+    DatabaseAccess::instance()->removeSubject(subject);
+    Controller::instance()->checkDbError();
+    loadSubjectLists(currentClasss);
 }

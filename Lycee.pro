@@ -24,6 +24,8 @@ SOURCES += \
     mainwindow.cpp \
     newstudentform.cpp \
     notespage.cpp \
+    schoolyearsmodel.cpp \
+    schoolyearsview.cpp \
     student.cpp \
     studentgrade.cpp \
     studentlistmodel.cpp \
@@ -49,6 +51,8 @@ HEADERS += \
     mainwindow.h \
     newstudentform.h \
     notespage.h \
+    schoolyearsmodel.h \
+    schoolyearsview.h \
     student.h \
     studentgrade.h \
     studentlistmodel.h \

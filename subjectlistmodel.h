@@ -29,6 +29,12 @@ public:
 
     void addSubject(const QString &subjectName, int subjectCoef);
 
+    Subject subjectAt(int index) const;
+
+    void updateSubject(const Subject &subject);
+
+    void removeSubject(const Subject &subject);
+
 private:
     std::vector<Subject> subjects;
     int currentClasss = 0;

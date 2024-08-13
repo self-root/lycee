@@ -1,5 +1,7 @@
 #include "controller.h"
 #include "databaseaccess.h"
+#include <QDir>
+#include <QStandardPaths>
 
 Controller *Controller::_instance = 0;
 Controller::Controller(QObject *parent) : QObject(parent){}

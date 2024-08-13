@@ -1,5 +1,6 @@
 #include "studentlistmodel.h"
 #include <QColor>
+#include <QDate>
 #include "databaseaccess.h"
 
 StudentListModel::StudentListModel(QObject *parent)
@@ -71,6 +72,18 @@ QVariant StudentListModel::headerData(int section, Qt::Orientation orientation, 
                 return QVariant();
             }
         }
+        case 5:{
+            switch (role) {
+            case Qt::DisplayRole:
+                return "Date de Naissance";
+                break;
+            case Qt::ForegroundRole:
+                //return QColor(0, 0, 0);
+                break;
+            default:
+                return QVariant();
+            }
+        }
 
         default:
             return QVariant();
@@ -106,7 +119,7 @@ int StudentListModel::columnCount(const QModelIndex &parent) const
     if (parent.isValid())
         return 0;
 
-    return 5;
+    return 6;
 }
 
 QVariant StudentListModel::data(const QModelIndex &index, int role) const
@@ -156,6 +169,15 @@ QVariant StudentListModel::data(const QModelIndex &index, int role) const
         switch (role) {
         case Qt::DisplayRole:
             return student.situation();
+            break;
+        default:
+            break;
+        }
+        break;
+    case 5:
+        switch (role) {
+        case Qt::DisplayRole:
+            return QDate::fromString(student.birthDay(), "dd-MM-yyyy");
             break;
         default:
             break;
@@ -226,7 +248,6 @@ Student StudentListModel::studentByName(const QString &name)
             student = _student;
             break;
         }
-
     }
     return student;
 }

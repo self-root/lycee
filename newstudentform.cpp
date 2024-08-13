@@ -48,6 +48,10 @@ void NewStudentForm::on_saveBtn_clicked()
         close();
     }
 
+    ui->nameEdit->clear();
+    ui->matriculeEdit->clear();
+    ui->numberSpin->setValue(0);
+
 }
 
 

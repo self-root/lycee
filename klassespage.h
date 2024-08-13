@@ -4,6 +4,7 @@
 #include <QWidget>
 #include "klasslistview.h"
 #include "subjectlisttableview.h"
+#include "schoolyearsview.h"
 
 namespace Ui {
 class KlassesPage;
@@ -20,19 +21,22 @@ public:
 private slots:
 
 
-    void on_schoolYearCombo_activated(int index);
-
     void on_addClassBtn_clicked();
 
     void setSubjectEditComboValues();
 
     void on_addSubjectBtn_clicked();
 
+    void on_schoolYearBtn_clicked();
+
+    void onSubjectSelected(const Subject &subject);
+
 private:
     Ui::KlassesPage *ui;
-    void setSchoolYearComboboxValues();
     KlassListView *klassLisetView = nullptr;
     SubjectListTableView *subjectTableView = nullptr;
+    SchoolYearsView *schoolYearsView = nullptr;
+    Subject currentSubject;
 };
 
 #endif // KLASSESPAGE_H

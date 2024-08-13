@@ -10,34 +10,21 @@ KlassesPage::KlassesPage(QWidget *parent)
     ui->setupUi(this);
     klassLisetView = new KlassListView;
     subjectTableView = new SubjectListTableView;
-    ui->leftLayout->insertWidget(0, klassLisetView);
-    ui->rightLayout->insertWidget(0, subjectTableView);
-    setSchoolYearComboboxValues();
+    schoolYearsView = new SchoolYearsView;
+    ui->leftLayout->insertWidget(1, klassLisetView);
+    ui->rightLayout->insertWidget(1, subjectTableView);
+    ui->schoolyearLayout->insertWidget(1, schoolYearsView);
     setSubjectEditComboValues();
 
     QObject::connect(klassLisetView, &KlassListView::getSubjectListsFor, subjectTableView, &SubjectListTableView::onGetSubjectsFor);
+    QObject::connect(schoolYearsView, &SchoolYearsView::currentSchoolYearChanged, klassLisetView, &KlassListView::loadKlasses);
+    QObject::connect(subjectTableView, &SubjectListTableView::selectedSubject, this, &KlassesPage::onSubjectSelected);
 }
 
 KlassesPage::~KlassesPage()
 {
     delete ui;
 }
-
-
-void KlassesPage::setSchoolYearComboboxValues()
-{
-    for (const QString &year: Controller::instance()->schoolYears)
-        ui->schoolYearCombo->addItem(year);
-}
-
-
-void KlassesPage::on_schoolYearCombo_activated(int index)
-{
-    QString schoolYear = ui->schoolYearCombo->currentText();
-    qDebug() << __FUNCTION__ << " " << index << " -> " << schoolYear;
-    klassLisetView->loadKlasses(schoolYear);
-}
-
 
 void KlassesPage::on_addClassBtn_clicked()
 {
@@ -64,9 +51,37 @@ void KlassesPage::on_addSubjectBtn_clicked()
     if (subjectName.isEmpty())
         return;
 
-    int coef = ui->coefSpinBox->value();
-    subjectTableView->addSubject(subjectName, coef);
+    if (subjectName.compare(currentSubject.subjectName(), Qt::CaseInsensitive) == 0)
+    {
+        qDebug() << "Update subject";
+        currentSubject.setSubjectName(subjectName);
+        currentSubject.setSubjectCoef(ui->coefSpinBox->value());
+        subjectTableView->model->updateSubject(currentSubject);
+    }
+
+    else
+    {
+        int coef = ui->coefSpinBox->value();
+        subjectTableView->addSubject(subjectName, coef);
+    }
     ui->subjectNameCombo->clearEditText();
     setSubjectEditComboValues();
+}
+
+
+void KlassesPage::on_schoolYearBtn_clicked()
+{
+    if (!ui->schoolYearEdit->text().isEmpty())
+    {
+        schoolYearsView->model->addScoolYear(ui->schoolYearEdit->text());
+        ui->schoolYearEdit->clear();
+    }
+}
+
+void KlassesPage::onSubjectSelected(const Subject &subject)
+{
+    currentSubject = subject;
+    ui->subjectNameCombo->setCurrentText(subject.subjectName());
+    ui->coefSpinBox->setValue(subject.subjectCoef());
 }
 
