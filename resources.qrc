@@ -1,0 +1,23 @@
+<RCC>
+    <qresource prefix="/icons">
+        <file>images/home.png</file>
+        <file>images/students.png</file>
+        <file>images/students2.png</file>
+        <file>images/students.svg</file>
+        <file>images/class.png</file>
+        <file>images/notes.png</file>
+        <file>images/settings.png</file>
+        <file>images/quit.png</file>
+        <file>images/whale.svg</file>
+        <file>images/whale_letter2.svg</file>
+        <file>images/whale_letter2.png</file>
+        <file>images/male.svg</file>
+        <file>images/female.svg</file>
+    </qresource>
+    <qresource prefix="/data">
+        <file>data/lyceedata</file>
+    </qresource>
+    <qresource prefix="/">
+        <file>HomeUi.qml</file>
+    </qresource>
+</RCC>

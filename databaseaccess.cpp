@@ -1,0 +1,492 @@
+#include "databaseaccess.h"
+#include <QSql>
+#include <QSqlDatabase>
+#include <QSqlError>
+#include <QSqlQuery>
+#include <QDebug>
+#include <QUrl>
+
+DatabaseAccess *DatabaseAccess::_instance = 0;
+DatabaseAccess::DatabaseAccess(QObject *parent)
+    : QObject{parent}
+{
+
+}
+
+void DatabaseAccess::setErrorMessage(const QString &error)
+{
+    dbError = true;
+    errorMessage = error;
+}
+
+DatabaseAccess *DatabaseAccess::instance()
+{
+    if (_instance == 0)
+        _instance = new DatabaseAccess;
+    return _instance;
+}
+
+bool DatabaseAccess::hasDbError()
+{
+    return dbError;
+}
+
+QString DatabaseAccess::getErrorMessage()
+{
+    dbError = false;
+    return errorMessage;
+}
+
+void DatabaseAccess::openDB()
+{
+    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
+    db.setDatabaseName("lyceedata");
+    db.open();
+
+    if (!db.isOpen())
+    {
+        setErrorMessage("Error occuredd while opening database lyceedata\n" + db.lastError().text());
+        qDebug() << errorMessage;
+
+    }
+}
+
+std::vector<Student> DatabaseAccess::loadStudentsByClass(int classID)
+{
+    std::vector<Student> students;
+    QSqlQuery query;
+    query.prepare("SELECT student.id, name, matricule, dateNaiss, situation, sexe, studentNumber FROM student INNER JOIN klass ON klass.id = student.f_klass WHERE klass.id = :classId");
+    query.bindValue(":classId", classID);
+
+    if (query.exec())
+    {
+        while (query.next()) {
+            Student student;
+            student.setId(query.value("id").toInt());
+            student.setName(query.value("name").toString());
+            student.setMatricule(query.value("matricule").toString());
+            student.setBirthDay(query.value("dateNaiss").toString());
+            student.setSituation(query.value("situation").toString());
+            student.setSexe(query.value("sexe").toString());
+            student.setNumber(query.value("studentNumber").toInt());
+
+            students.push_back(student);
+        }
+    }
+
+    else{
+        setErrorMessage(QString("Error while geting Student list from the database by class ID: %1\n%2")
+                            .arg(classID).arg(query.lastError().text()));
+    }
+
+    return students;
+}
+
+
+std::vector<Klass> DatabaseAccess::gestClasses(const QString &schoolYear)
+{
+    std::vector<Klass> klasses;
+    QSqlQuery query;
+    query.prepare("SELECT * FROM klass INNER JOIN school_year ON school_year.id = klass.schoolYear WHERE school_year.schoolYear = :schoolYear");
+    query.bindValue(":schoolYear", schoolYear);
+    if (query.exec())
+    {
+        while (query.next())
+        {
+            Klass klass;
+            klass.setClassId(query.value("id").toInt());
+            klass.setClassName(query.value("klassName").toString());
+            klasses.push_back(klass);
+        }
+    }
+    else
+        setErrorMessage("Error while geting classes list from the database. School year: " + schoolYear + "\n" + query.lastError().text());
+    return klasses;
+}
+
+void DatabaseAccess::updateStudent(const Student &student, int classID)
+{
+    qDebug() << "Updateid: " << student.id() << " classId: " << classID;
+    QSqlQuery query;
+    query.prepare("UPDATE student SET name = :name, matricule = :matricule, dateNaiss = :dateNaiss, situation = :situation, sexe = :sexe, studentNumber = :studentNumber, finalRank = :finalRank, finalAvg = :finalAvg WHERE id = :id AND f_klass = :classId");
+    query.bindValue(":name", student.name());
+    query.bindValue(":matricule", student.matricule());
+    query.bindValue(":dateNaiss", student.birthDay());
+    query.bindValue(":situation", student.situation());
+    query.bindValue(":sexe", student.sexe());
+    query.bindValue(":studentNumber", student.number());
+    query.bindValue(":finalRank", student.fInalRank());
+    query.bindValue(":finalAvg", student.finalAVG());
+    query.bindValue(":classId", classID);
+    query.bindValue(":id", student.id());
+
+    if (!query.exec())
+        setErrorMessage(QString("Error while Updating Student in the database. Student name: %1\n%2")
+                            .arg(student.name()).arg(query.lastError().text()));
+
+
+}
+
+void DatabaseAccess::addStudent(Student &student, int classID)
+{
+    QSqlQuery query;
+    query.prepare("INSERT INTO student(name, matricule, dateNaiss, situation, sexe, studentNumber, f_klass) VALUES (:name, :matricule, :dateNaiss, :situation, :sexe, :studentNumber, :f_klass)");
+    query.bindValue(":name", student.name());
+    query.bindValue(":matricule", student.matricule());
+    query.bindValue(":dateNaiss", student.birthDay());
+    query.bindValue(":situation", student.situation());
+    query.bindValue(":sexe", student.sexe());
+    query.bindValue(":studentNumber", student.number());
+    query.bindValue(":f_klass", classID);
+
+
+    if (query.exec())
+        student.setId(query.lastInsertId().toInt());
+    else
+        setErrorMessage(QString("Error while Adding new Student to the database. Student name: %1\n%2")
+                            .arg(student.name()).arg(query.lastError().text()));
+}
+
+void DatabaseAccess::deleteStudent(const Student &student, int classID)
+{
+    QSqlQuery query;
+    query.prepare("DELETE FROM student WHERE id = :id AND f_klass = :classID");
+    query.bindValue(":id", student.id());
+    query.bindValue(":classID", classID);
+
+    if (!query.exec())
+        setErrorMessage(QString("Error while Deleting Student from the database. Student name: %1\n%2")
+                            .arg(student.name()).arg(query.lastError().text()));
+}
+
+std::vector<Subject> DatabaseAccess::getSubjectByClass(int classID)
+{
+    std::vector<Subject> subjects;
+    QSqlQuery query;
+    query.prepare(R"(SELECT subject.id, subjectName, subjectCoef
+                     FROM subject
+                     INNER JOIN klass ON f_klass = klass.id
+                     WHERE f_klass = :klassID)");
+    query.bindValue(":klassID", classID);
+
+    if (query.exec())
+    {
+        Subject subject;
+        while (query.next())
+        {
+            subject.setSubjectName(query.value("subjectName").toString());
+            subject.setSubjectId(query.value("id").toInt());
+            subject.setSubjectCoef(query.value("subjectCoef").toInt());
+            subjects.push_back(subject);
+        }
+    }
+
+    return subjects;
+}
+
+QStringList DatabaseAccess::groupedSubjectNames()
+{
+    QSqlQuery query("SELECT subjectName FROM subject GROUP BY (subjectName)");
+    QStringList subjectNames;
+
+    if (query.exec())
+    {
+        while (query.next())
+        {
+            subjectNames << query.value("subjectName").toString();
+        }
+    }
+
+    else
+    {
+        setErrorMessage(QString("Error while getting subject list from the database.\n%2")
+                            .arg(query.lastError().text()));
+    }
+
+    return subjectNames;
+}
+
+
+QStringList DatabaseAccess::schoolYears()
+{
+    QStringList schoolY;
+    QSqlQuery query("SELECT * FROM school_year");
+    if (query.exec())
+    {
+        while (query.next()) {
+            schoolY << query.value("schoolYear").toString();
+        }
+    }
+    else
+    {
+        setErrorMessage("Error occured while getting schoolyear list from database\n" + query.lastError().text());
+        qDebug() << errorMessage;
+    }
+    return schoolY;
+}
+
+int DatabaseAccess::schoolYearID(const QString &schoolYear)
+{
+    QSqlQuery query;
+    query.prepare("SELECT id FROM school_year WHERE schoolYear = :year");
+    query.bindValue(":year", schoolYear);
+
+    if (query.exec())
+    {
+        if (query.next())
+            return query.value("id").toInt();
+    }
+    else {
+        setErrorMessage(QString("Error occured while getting schoolyear %1 id from the database\n%2")
+                            .arg(schoolYear).arg(query.lastError().text()));
+        qDebug() << errorMessage;
+    }
+
+    return -1;
+}
+
+void DatabaseAccess::addClass(const QString &className, int schoolYearID)
+{
+    QSqlQuery query;
+    query.prepare(R"(INSERT INTO klass(schoolYear, klassName)
+                    VALUES (:schoolYear, :klassName))");
+    query.bindValue(":schoolYear", schoolYearID);
+    query.bindValue(":klassName", className);
+
+    if (!query.exec())
+        setErrorMessage(QString("Error while Adding new Class to the database. Class name: %1\n%2")
+                            .arg(className).arg(query.lastError().text()));
+}
+
+void DatabaseAccess::addSubject(Subject &subject, int classID)
+{
+    QSqlQuery query;
+    query.prepare(R"(INSERT INTO subject(subjectName, subjectCoef, f_klass)
+                    VALUES (:subjectName, :subjectCoef, :f_klass))");
+
+    query.bindValue(":subjectName", subject.subjectName());
+    query.bindValue(":subjectCoef", subject.subjectCoef());
+    query.bindValue(":f_klass", classID);
+
+    if (query.exec())
+    {
+        int subjectID = query.lastInsertId().toInt();
+        subject.setSubjectId(subjectID);
+    }
+
+    else
+    {
+        setErrorMessage(QString("Error while Adding new Subject to the database. Subject name: %1\n%2")
+                            .arg(subject.subjectName()).arg(query.lastError().text()));
+    }
+}
+
+void DatabaseAccess::studentGrades(int klassID,
+                                   int trimester,
+                                   std::vector<StudentGrade> &grades,
+                                   std::vector<Student> &students,
+                                   std::vector<Subject> &subjects)
+{
+    QSqlQuery query;
+    query.prepare(R"(
+        SELECT student.id, name, subjectName, subject.id AS subjectID ,grade,
+        grade.id AS grade_id, skip ,grade20, f_trimester, grade.f_student, klassName, subjectCoef
+        FROM grade
+        INNER JOIN student on student.id = grade.f_student
+        INNER JOIN subject on subject.id = f_subject
+        INNER JOIN trimester on trimester.id = f_trimester
+        INNER JOIN klass on klass.id = student.f_klass
+        WHERE klass.id = :klassID AND f_trimester  = :trimester
+    )");
+
+    query.bindValue(":klassID", klassID);
+    query.bindValue(":trimester", trimester);
+
+    if (!query.exec())
+    {
+        setErrorMessage(QString("Error while reading students grade from the database. KlassID: %1, Trimester: %2\n%3")
+                            .arg(klassID).arg(trimester).arg(query.lastError().text()));
+        return;
+    }
+
+    while (query.next())
+    {
+        int studentID = query.value("id").toInt();
+        int subjectID = query.value("subjectID").toInt();
+
+        auto studentIndex = DatabaseAccess::indexOF(students, studentID);
+        auto subjectIndex = DatabaseAccess::indexOF(subjects, subjectID);
+
+        try {
+            StudentGrade studentGrade(students.at(studentIndex), subjects.at(subjectIndex), trimester);
+            studentGrade.setGradeID(query.value("grade_id").toInt());
+            studentGrade.setGrade(query.value("grade").toDouble());
+            studentGrade.setGrade20(query.value("grade20").toDouble());
+            studentGrade.setSkip(query.value("skip").toBool());
+            studentGrade.setCoef(query.value("subjectCoef").toInt());
+            grades.push_back(studentGrade);
+        } catch (std::exception &e)
+        {
+            setErrorMessage(QString("Exception was raised while reading/seting studentgrade: %1").arg(e.what()));
+        }
+
+    }
+}
+
+std::size_t DatabaseAccess::indexOF(std::vector<Student> &students, int id)
+{
+    std::size_t index = -1;
+
+    for (std::size_t i = 0; i < students.size(); i++)
+    {
+        if (students.at(i).id() == id)
+        {
+            index = i;
+            break;
+        }
+    }
+    return index;
+}
+
+std::size_t DatabaseAccess::indexOF(std::vector<Subject> &subjects, int id)
+{
+    std::size_t index = -1;
+
+    for (std::size_t i = 0; i < subjects.size(); i++)
+    {
+        qDebug() << "Requested id: " << id;
+        qDebug() << "Subject: " << subjects.at(i).subjectName() << " id: " << subjects.at(i).subjectId();
+        if (subjects.at(i).subjectId() == id)
+        {
+            index = i;
+            break;
+        }
+    }
+
+
+    return index;
+}
+
+void DatabaseAccess::updateStudentGrade(const GradeMetaData &gradeMeta)
+{
+    QSqlQuery query;
+    query.prepare(R"(
+        UPDATE grade
+        SET grade = :grade, grade20 = :grade20, skip = :skip
+        WHERE id = :id
+    )");
+
+    query.bindValue(":grade", gradeMeta.grade);
+    query.bindValue(":grade20", gradeMeta.grade20);
+    query.bindValue(":skip",gradeMeta.skip);
+    query.bindValue(":id", gradeMeta.id);
+
+    if (!query.exec())
+        setErrorMessage(QString("Error while updating student grade. GradeID: %1, SubjectName: %2\n%3")
+                            .arg(gradeMeta.id).arg(gradeMeta.subjectName).arg(query.lastError().text()));
+}
+
+void DatabaseAccess::addGrade(GradeMetaData &gradeMeta, int trimesterID, int studentID, int subjectID)
+{
+    QSqlQuery query;
+    query.prepare(R"(
+        INSERT INTO grade(grade, grade20, f_subject, f_student, f_trimester, skip)
+        VALUES (:grade, :grade20, :f_subject, :f_student, :f_trimester, :skip)
+    )");
+
+    query.bindValue(":grade", gradeMeta.grade);
+    query.bindValue(":grade20", gradeMeta.grade20);
+    query.bindValue(":f_subject", subjectID);
+    query.bindValue(":f_student", studentID);
+    query.bindValue(":f_trimester", trimesterID);
+    query.bindValue(":skip", gradeMeta.skip);
+
+    if (query.exec())
+        gradeMeta.id = query.lastInsertId().toInt();
+
+    else
+    {
+        setErrorMessage(QString("Error while Adding new student grade to the database. Subject name: %1\n%2")
+                            .arg(gradeMeta.subjectName).arg(query.lastError().text()));
+    }
+}
+
+void DatabaseAccess::getTrimesterAverages(std::vector<TrimesterAVG> &averages, int classID, int trimesterID)
+{
+    QSqlQuery query;
+    query.prepare(R"(
+        SELECT trimavg.id as trimAVGid, avg, rank, trimester, f_student, total FROM trimavg
+        INNER JOIN student
+        ON student.id  = trimavg.f_student
+        WHERE student.f_klass = :klassID  AND trimester = :trimester
+    )");
+
+    query.bindValue(":klassID", classID);
+    query.bindValue(":trimester", trimesterID);
+
+    if (!query.exec())
+    {
+        setErrorMessage(QString("Error while reading students trimester averages from the database. KlassID: %1, Trimester: %2\n%3")
+                            .arg(classID).arg(trimesterID).arg(query.lastError().text()));
+        return;
+    }
+
+    while (query.next())
+    {
+        TrimesterAVG trimAVG;
+        trimAVG.id = query.value("trimAVGid").toInt();
+        trimAVG.avg = query.value("avg").toDouble();
+        trimAVG.rank = query.value("rank").toInt();
+        trimAVG.trimester = query.value("trimester").toInt();
+        trimAVG.studentid = query.value("f_student").toInt();
+        trimAVG.total = query.value("total").toDouble();
+
+        averages.push_back(trimAVG);
+    }
+}
+
+void DatabaseAccess::addTrimesterAVG(TrimesterAVG &trimAVG)
+{
+    QSqlQuery query;
+    query.prepare(R"(
+        INSERT INTO trimAVG(avg, rank, trimester, f_student, total)
+        VALUES (:avg, :rank, :trimester, :f_student, :total)
+    )");
+
+    query.bindValue(":avg", trimAVG.avg);
+    query.bindValue(":rank", trimAVG.rank);
+    query.bindValue(":trimester", trimAVG.trimester);
+    query.bindValue(":f_student", trimAVG.studentid);
+    query.bindValue(":total", trimAVG.total);
+
+    if (query.exec())
+    {
+        trimAVG.id = query.lastInsertId().toInt();
+        return;
+    }
+
+    setErrorMessage(QString("Error while Adding new student trimester average to the database.\n%2")
+                       .arg(query.lastError().text()));
+}
+
+void DatabaseAccess::updateTrimAVG(const TrimesterAVG &trimAVG)
+{
+    QSqlQuery query;
+    query.prepare(R"(
+        UPDATE trimavg
+        SET avg = :avg, rank = :rank, trimester = :trimester, f_student = :f_student, total = :total
+        WHERE id = :id
+    )");
+
+    query.bindValue(":avg", trimAVG.avg);
+    query.bindValue(":rank", trimAVG.rank);
+    query.bindValue(":trimester", trimAVG.trimester);
+    query.bindValue(":f_studend", trimAVG.studentid);
+    query.bindValue(":total", trimAVG.total);
+    query.bindValue(":id", trimAVG.id);
+
+    if (!query.exec())
+        setErrorMessage(QString("Trimester average update error: %1").arg(query.lastError().text()));
+}
+
+
