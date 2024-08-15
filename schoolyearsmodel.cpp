@@ -18,8 +18,7 @@ int SchoolYearsModel::rowCount(const QModelIndex &parent) const
 
 QVariant SchoolYearsModel::data(const QModelIndex &index, int role) const
 {
-    if (!index.isValid())
-        return QVariant();
+
 
     switch (role) {
     case Qt::DisplayRole:
@@ -49,4 +48,11 @@ void SchoolYearsModel::removeSchoolYear(const QString &schoolYear)
 {
     DatabaseAccess::instance()->removeSchoolYear(schoolYear);
     loadSchoolYears();
+}
+
+QHash<int, QByteArray> SchoolYearsModel::roleNames() const
+{
+    QHash<int, QByteArray> roles;
+    roles[Roles::SchoolYearRole] = "schoolYear";
+    return roles;
 }

@@ -26,11 +26,8 @@ Item {
             anchors.leftMargin: 10
             anchors.topMargin: 12
 
-            model: ListModel {
-                id: listModel
-                ListElement{text: "2024 - 2025"}
-                ListElement{text: "2023 - 2024"}
-            }
+            model: homeController.schoolYearModel
+            //textRole: schoolYear
         }
 
         Rectangle{
@@ -53,7 +50,6 @@ Item {
                     source: "qrc:/icons/images/students.svg"
                 }
                 Column{
-
                     spacing: 6
                     Text {
                         id: topLabel
@@ -65,15 +61,13 @@ Item {
 
                     Text {
                         id: studentsNumberLabel
-                        text: "450"
+                        text: homeController.students
                         color:  "white"
                         font.bold: true
                         font.pixelSize: 24
                     }
                 }
             }
-
-
         }
 
         Rectangle{
@@ -108,7 +102,7 @@ Item {
 
                     Text {
                         id: boysNumberLabel
-                        text: "250"
+                        text: homeController.males
                         color:  "white"
                         font.bold: true
                         font.pixelSize: 24
@@ -150,7 +144,7 @@ Item {
 
                     Text {
                         id: girlsNumberLabel
-                        text: "300"
+                        text: homeController.females
                         color:  "white"
                         font.bold: true
                         font.pixelSize: 24

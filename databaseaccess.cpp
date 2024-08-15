@@ -351,7 +351,7 @@ QStringList DatabaseAccess::groupedSubjectNames()
 QStringList DatabaseAccess::schoolYears()
 {
     QStringList schoolY;
-    QSqlQuery query("SELECT * FROM school_year");
+    QSqlQuery query("SELECT * FROM school_year ORDER BY id DESC");
     if (query.exec())
     {
         while (query.next()) {
@@ -918,6 +918,62 @@ Klass DatabaseAccess::classByID(int klassID)
 
     return klass;
 
+}
+
+int DatabaseAccess::getStudentCount(const QString &schoolYear)
+{
+    QSqlQuery query;
+    query.prepare(R"(
+        SELECT COUNT(student.id)
+        FROM student
+        INNER JOIN klass ON klass.id = student.f_klass
+        INNER JOIN school_year ON f_schoolYear  = school_year .id
+        WHERE school_year.schoolYear  = :schoolYear;
+    )");
+
+    query.bindValue(":schoolYear", schoolYear);
+    if (query.exec())
+    {
+        if (query.next())
+            return query.value(0).toInt();
+    }
+
+    else
+    {
+        setErrorMessage(QString("Student count reading error %1").arg(query.lastError().text()));
+        qDebug() << errorMessage;
+    }
+
+    return 0;
+}
+
+int DatabaseAccess::getSexeCount(const QString &schoolYear, const QString &sexe)
+{
+    QSqlQuery query;
+    query.prepare(R"(
+        SELECT COUNT(student.id) FROM student
+        INNER JOIN klass ON klass.id = student.f_klass
+        INNER JOIN school_year ON f_schoolYear  = school_year .id
+        WHERE school_year.schoolYear  = :schoolYear
+        AND student.sexe = :sexe
+
+    )");
+
+    query.bindValue(":schoolYear", schoolYear);
+    query.bindValue(":sexe", sexe);
+    if (query.exec())
+    {
+        if (query.next())
+            return query.value(0).toInt();
+    }
+
+    else
+    {
+        setErrorMessage(QString("Student gender count reading error %1").arg(query.lastError().text()));
+        qDebug() << errorMessage;
+    }
+
+    return 0;
 }
 
 

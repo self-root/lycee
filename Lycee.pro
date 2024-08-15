@@ -29,6 +29,7 @@ SOURCES += \
     newstudentform.cpp \
     notespage.cpp \
     pdfcreator.cpp \
+    schoolyearlistmodel.cpp \
     schoolyearsmodel.cpp \
     schoolyearsview.cpp \
     settingspage.cpp \
@@ -62,6 +63,7 @@ HEADERS += \
     newstudentform.h \
     notespage.h \
     pdfcreator.h \
+    schoolyearlistmodel.h \
     schoolyearsmodel.h \
     schoolyearsview.h \
     settingspage.h \

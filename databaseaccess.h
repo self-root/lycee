@@ -97,6 +97,10 @@ public:
 
     Klass classByID(int klassID);
 
+    int getStudentCount(const QString &schoolYear);
+
+    int getSexeCount(const QString &schoolYear, const QString &sexe);
+
 };
 
 #endif // DATABASEACCESS_H
