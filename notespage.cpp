@@ -4,6 +4,7 @@
 #include "databaseaccess.h"
 #include "clipboardparser.h"
 #include <QClipboard>
+#include <QFileDialog>
 
 NotesPage::NotesPage(QWidget *parent)
     : QWidget(parent)
@@ -51,8 +52,23 @@ void NotesPage::on_classCombo_activated(int index)
 
 void NotesPage::on_trimestreCombo_activated(int index)
 {
-    Q_UNUSED(index)
     on_classCombo_activated(0);
+    if (index == 2)
+    {
+        generalComputeAction->setEnabled(true);
+        generalAVGView = new FinalAVGView;
+        tabWidget->addTab(generalAVGView, "Moyenne General");
+        generalAVGView->model->loadData(Controller::instance()->klassByName(ui->classCombo->currentText()).classId());
+    }
+    else
+    {
+        generalComputeAction->setEnabled(false);
+        if (generalAVGView != nullptr)
+        {
+            delete generalAVGView;
+            generalAVGView = nullptr;
+        }
+    }
 }
 
 void NotesPage::setUpsubjectLists(int klassID)
@@ -102,13 +118,20 @@ void NotesPage::setupToolBar()
     toolbar->setMovable(true);
     toolbar->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
     pasteAction = new QAction(QIcon(":/icons/images/paste.png"), "Coller");
-    computeAction = new QAction(QIcon(":/icons/images/calculator.png"), "Calculler Moyenne");
+    computeAction = new QAction(QIcon(":/icons/images/calculator.png"), "Moyenne");
+    generalComputeAction = new QAction(QIcon(":/icons/images/compute1.png"), "Moyenne general");
+    createTranscriptAction = new QAction(QIcon(":/icons/images/transcript.png"), "Créer Bulettin");
+    generalComputeAction->setEnabled(false);
     toolbar->addAction(pasteAction);
     toolbar->addAction(computeAction);
+    toolbar->addAction(generalComputeAction);
+    toolbar->addAction(createTranscriptAction);
     ui->mainLayout->insertWidget(0, toolbar);
 
     QObject::connect(pasteAction, &QAction::triggered, this, &NotesPage::onPaste);
     QObject::connect(computeAction, &QAction::triggered, this, &NotesPage::onCompute);
+    QObject::connect(generalComputeAction, &QAction::triggered, this, &NotesPage::onComputeFinalAVG);
+    QObject::connect(createTranscriptAction, &QAction::triggered, this, &NotesPage::onCreateTranscript);
 }
 
 
@@ -178,5 +201,35 @@ void NotesPage::onCompute(bool _)
 {
     Q_UNUSED(_);
     gradesView->model->computeAVG();
+}
+
+void NotesPage::onComputeFinalAVG(bool _)
+{
+    qDebug() << "Compute finalAVG";
+    generalAVGView->model->computeFinalAVG();
+}
+
+void NotesPage::onCreateTranscript(bool _)
+{
+    qDebug() << __FUNCTION__;
+    int currentTrimester = ui->trimestreCombo->currentIndex() + 1;
+
+    QFileDialog fileDialog;
+    fileDialog.setAcceptMode(QFileDialog::AcceptSave);
+    fileDialog.setNameFilter("PDF (*.pdf)");
+
+    if (fileDialog.exec())
+    {
+        auto files = fileDialog.selectedFiles();
+        if (files.length() > 0)
+        {
+            Controller::instance()->createTranscript(
+                Controller::instance()->klassByName(ui->classCombo->currentText()).classId(),
+                ui->trimestreCombo->currentIndex() + 1,
+                files.at(0),
+                ui->schoolYearCombo->currentText()
+            );
+        }
+    }
 }
 

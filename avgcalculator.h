@@ -3,6 +3,7 @@
 
 #include "studentgrade.h"
 #include "trimesteravg.h"
+#include "finalavg.h"
 
 #include <vector>
 
@@ -18,6 +19,16 @@ public:
     static TrimesterAVG computeStudentAverage(const std::vector<GradeMetaData> &gradeMeta, int studentID, int trimester);
 
     static void sortAVG(std::vector<TrimesterAVG> &trimAVGs);
+
+    static std::vector<FinalAVG> computeFinalAVG(
+                                    const std::vector<TrimesterAVG> &trimAVG_1,
+                                    const std::vector<TrimesterAVG> &trimAVG_2,
+                                    const std::vector<TrimesterAVG> &trimAVG_3,
+                                    const std::vector<Student> &students);
+
+    static TrimesterAVG trimAVGFor(int studentID, const std::vector<TrimesterAVG> &trimAVG);
+    static void sortFinalAVG(std::vector<FinalAVG> &finalAVG);
+    static void setFinalRanks(std::vector<FinalAVG> &finalAVG);
 };
 
 #endif // AVGCALCULATOR_H

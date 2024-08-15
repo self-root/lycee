@@ -1,0 +1,195 @@
+#ifndef PDFCREATOR_H
+#define PDFCREATOR_H
+
+#include <QObject>
+#include <QMap>
+
+class GradeMetaData;
+class Student;
+class Subject;
+class StudentGrade;
+class TrimesterAVG;
+class FinalAVG;
+
+class PdfCreator : public QObject
+{
+    Q_OBJECT
+public:
+    explicit PdfCreator(QObject *parent = nullptr);
+
+public slots:
+    void createTranscript(int classID, int trimester, QString out , QMap<QString, QString> schoolInfo_, const QString &schoolYear);
+    void createFinalTranscipt(int classID, QString out , QMap<QString, QString> schoolInfo_, const QString &schoolYear);
+
+private:
+    QString filePath;
+    QMap<QString, QString> schoolInfo;
+
+    GradeMetaData gradeFor(const Student &student, const Subject &subjct, std::vector<StudentGrade> &grades);
+
+    Student studentFor(const TrimesterAVG &trimAVG, const std::vector<Student> &students);
+    Student studentForFinal(const FinalAVG &final, const std::vector<Student> &students);
+
+    TrimesterAVG trimAVGFor(const Student &student, const std::vector<TrimesterAVG> &avgs);
+
+    QString appreciation(double grade20);
+
+    double classAverage(const std::vector<TrimesterAVG> &avgs);
+
+    QString writeHtml(const QString &html);
+
+    QString transcriptHeader = R"(
+            <table>
+                <tr>
+
+                    <td colspan="3" align="center">Bulletin de Note Trimestre %1</td>
+
+                </tr>
+                <tr>
+                    <td>%2</td>
+                    <td></td>
+                    <td align="right">Annee Scollaire: %3</td>
+                </tr>
+                <tr>
+                    <td>%4</td>
+                </tr>
+                <tr>
+                    <td>Numero : %5</td>
+                </tr>
+                <tr>
+                    <td colspan="3">Nom et Prenom: %6</td>
+                </tr>
+                <tr>
+                    <td>Classe: %7</td>
+                </tr>
+                <tr>
+                    <td>Matricule: %8</td>
+                    <td colspan="2">Situation: %9</td>
+                </tr>
+            </table>
+    )";
+
+    QString tableHeader = R"(
+        <tr>
+            <td style="border: 1px solid black">Matiere</td>
+            <td style="border: 1px solid black">Note/20</td>
+            <td style="border: 1px solid black">Coef</td>
+            <td style="border: 1px solid black">Node def</td>
+            <td style="border: 1px solid black">Appreciation</td>
+            <td style="border: 1px solid black">Emargement</td>
+        </tr>
+    )";
+
+    QString subjectRows = R"(
+        <tr>
+            <td style="border: 1px solid black">%1</td>
+            <td style="border: 1px solid black">%2</td>
+            <td style="border: 1px solid black">%3</td>
+            <td style="border: 1px solid black">%4</td>
+            <td style="border: 1px solid black">%5</td>
+            <td style="border: 1px solid black"></td>
+        </tr>
+    )";
+
+    QString tootal_rank_part = R"(
+        <tr>
+            <td style="border: 1px solid black;">Total</td>
+            <td style="border: 1px solid black;">%1</td>
+            <td style="border: 1px solid black;">%2</td>
+            <td style="border: 1px solid black;">%3</td>
+            <td style="border: 1px solid black;"> </td>
+            <td style="border: 1px solid black;"> </td>
+        </tr>
+        <tr>
+            <td style="border: 1px solid black;">Moyenne</td>
+            <td style="border: 1px solid black;">%4</td>
+            <td rowspan="2" colspan="4" align="center" style="border: 1px solid black;">Moyenne de la class: %5</td>
+        </tr>
+        <tr>
+            <td style="border: 1px solid black;">Rang</td>
+            <td style="border: 1px solid black;">%6/%7</td>
+        </tr>
+    )";
+
+    QString final_total_rank_part = R"(
+        <tr>
+            <td style="border: 1px solid black;">Total</td>
+            <td style="border: 1px solid black;">%1</td>
+            <td style="border: 1px solid black;">%2</td>
+            <td style="border: 1px solid black;">%3</td>
+            <td style="border: 1px solid black;"> </td>
+            <td style="border: 1px solid black;"> </td>
+        </tr>
+        <tr>
+            <td style="border: 1px solid black;">Moyenne</td>
+            <td style="border: 1px solid black;">%4</td>
+            <td colspan="4" align="center" style="border: 1px solid black;">Moyenne de la class: %5</td>
+
+        </tr>
+
+        <tr>
+            <td style="border: 1px solid black;">Rang</td>
+            <td style="border: 1px solid black;">%6/%7</td>
+            <td colspan="4" align="center" style="border: 1px solid black;">Rang final: %8/%9</td>
+        </tr>
+    )";
+
+    QString final_footer = R"(
+        <table>
+            <tr>
+                <td> Moyenne Trim 1: %1 Moyenne Trim 2: %2 Moyenne G : %3</td>
+            </tr>
+            <tr>
+
+                <td colspan="3">OBSERVATION GENERALE OU DECISION DU CONSEIL DE CLASSE</td>
+
+            </tr>
+            <tr>
+                <td colspan="3">Admis en classe supérieure / Redouble sa classe</td>
+            </tr>
+            <tr>
+                <td>Remise à sa famille</td>
+                <td>Motif: </td>
+            </tr>
+            <tr>
+                <td>Parent</td>
+                <td align="right">%4 le<br>Proviseur,</td>
+
+            </tr>
+            <tr>
+                <td style="height: 40px;"></td>
+            </tr>
+            <tr>
+                <td colspan="3" align="right">%5</td>
+            </tr>
+        </table>
+    )";
+
+    QString footer = R"(
+    <table>
+        <tr>
+
+            <td colspan="3">OBSERVATION GENERALE OU DECISION DU CONSEIL DE CLASSE</td>
+
+        </tr>
+        <tr>
+            <td colspan="3">Très-Bien / Bien / Assez-Bien / Moyen / Insuffisant /Très-Bien</td>
+        </tr>
+        <tr>
+            <td>Parent</td>
+            <td align="right">%1 le<br>Proviseur,</td>
+
+        </tr>
+        <tr>
+            <td style="height: 40px;"></td>
+        </tr>
+        <tr>
+            <td colspan="3" align="right">%2</td>
+        </tr>
+    </table>
+    )";
+signals:
+    void pdfCreated();
+};
+
+#endif // PDFCREATOR_H

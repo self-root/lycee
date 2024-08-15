@@ -3,7 +3,12 @@
 
 #include <QStringList>
 #include <QObject>
+#include <QMap>
+#include <QThread>
+
 #include "klass.h"
+#include "pdfcreator.h"
+
 
 class Controller : public QObject
 {
@@ -13,6 +18,8 @@ protected:
 
 private:
     static Controller *_instance;
+    QThread pdfCreationThread;
+    PdfCreator *creator = nullptr;
 
 public:
     static Controller *instance();
@@ -22,10 +29,15 @@ public:
     void checkDbError();
     void getKlassList(const QString &schoolYear);
     Klass klassByName(const QString &className);
+    QMap<QString, QString> getSchoolSettings();
+    void saveSchoolSettings(const QMap<QString, QString> &setting);
+    void createTranscript(int classID, int trimester, const QString &filepath, const QString &schoolyear);
+
+private slots:
+    void onTrancriptCreated();
 
 signals:
     void databaseError(const QString &errorMessage);
-
 };
 
 #endif // CONTROLLER_H

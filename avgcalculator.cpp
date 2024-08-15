@@ -37,7 +37,9 @@ std::vector<TrimesterAVG> AVGCalculator::computeTrimesterAverage(std::vector<Stu
     return avgs;
 }
 
-TrimesterAVG AVGCalculator::computeStudentAverage(const std::vector<GradeMetaData> &gradeMeta, int studentID, int trimester)
+TrimesterAVG AVGCalculator::computeStudentAverage(const std::vector<GradeMetaData> &gradeMeta,
+                                                  int studentID,
+                                                  int trimester)
 {
     int totalCoef = 0;
     double totalScore = 0.0;
@@ -67,4 +69,58 @@ TrimesterAVG AVGCalculator::computeStudentAverage(const std::vector<GradeMetaDat
 void AVGCalculator::sortAVG(std::vector<TrimesterAVG> &trimAVGs)
 {
     std::sort(std::begin(trimAVGs), std::end(trimAVGs), [](const TrimesterAVG &a, const TrimesterAVG &b){return a.avg > b.avg;});
+}
+
+std::vector<FinalAVG> AVGCalculator::computeFinalAVG(const std::vector<TrimesterAVG> &trimAVG_1,
+                                                     const std::vector<TrimesterAVG> &trimAVG_2,
+                                                     const std::vector<TrimesterAVG> &trimAVG_3,
+                                                     const std::vector<Student> &students)
+{
+    std::vector<FinalAVG> avgs;
+    for (const Student &student : students)
+    {
+        TrimesterAVG avg_1 = trimAVGFor(student.id(), trimAVG_1);
+        TrimesterAVG avg_2 = trimAVGFor(student.id(), trimAVG_2);
+        TrimesterAVG avg_3 = trimAVGFor(student.id(), trimAVG_3);
+
+        double final_ = (avg_1.avg + avg_2.avg + (avg_3.avg * 2)) / 4;
+        FinalAVG finalAVG;
+        finalAVG.setAvg(final_);
+        finalAVG.setStudentId(student.id());
+        avgs.push_back(finalAVG);
+    }
+
+    sortFinalAVG(avgs);
+    setFinalRanks(avgs);
+    return avgs;
+}
+
+TrimesterAVG AVGCalculator::trimAVGFor(int studentID, const std::vector<TrimesterAVG> &trimAVG)
+{
+    TrimesterAVG avg;
+    for (const TrimesterAVG &a : trimAVG)
+    {
+        if (a.studentid == studentID)
+        {
+            avg = a;
+            break;
+        }
+    }
+
+    return avg;
+}
+
+void AVGCalculator::sortFinalAVG(std::vector<FinalAVG> &finalAVG)
+{
+    std::sort(std::begin(finalAVG), std::end(finalAVG), [](const FinalAVG &a, const FinalAVG &b){
+        return a.avg() > b.avg();
+    });
+}
+
+void AVGCalculator::setFinalRanks( std::vector<FinalAVG> &finalAVG)
+{
+    for (std::size_t i = 0; i < finalAVG.size(); i++)
+    {
+        finalAVG.at(i).setRank(i + 1);
+    }
 }

@@ -7,6 +7,7 @@
 #include <QAction>
 
 #include "gradestableview.h"
+#include "finalavgview.h"
 
 
 namespace Ui {
@@ -42,16 +43,23 @@ private slots:
 
     void onCompute(bool _);
 
+    void onComputeFinalAVG(bool _);
+
+    void onCreateTranscript(bool _);
+
 private:
     Ui::NotesPage *ui;
     QTabWidget *tabWidget = nullptr;
     GradesTableView *gradesView = nullptr;
+    FinalAVGView *generalAVGView = nullptr;
     void loadSchoolYear();
     void clearGradeForm();
     void setupToolBar();
     QToolBar *toolbar = nullptr;
     QAction *pasteAction = nullptr;
     QAction *computeAction = nullptr;
+    QAction *generalComputeAction = nullptr;
+    QAction *createTranscriptAction = nullptr;
     GradeMetaData currentGrade;
 
 };

@@ -1,4 +1,4 @@
-QT       += core gui sql quickwidgets
+QT       += core gui sql quickwidgets printsupport
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -13,6 +13,9 @@ SOURCES += \
     clipboardparser.cpp \
     controller.cpp \
     databaseaccess.cpp \
+    finalavg.cpp \
+    finalavgtablemodel.cpp \
+    finalavgview.cpp \
     gradelistmodel.cpp \
     gradestableview.cpp \
     home.cpp \
@@ -25,8 +28,10 @@ SOURCES += \
     mainwindow.cpp \
     newstudentform.cpp \
     notespage.cpp \
+    pdfcreator.cpp \
     schoolyearsmodel.cpp \
     schoolyearsview.cpp \
+    settingspage.cpp \
     student.cpp \
     studentgrade.cpp \
     studentlistmodel.cpp \
@@ -42,6 +47,9 @@ HEADERS += \
     clipboardparser.h \
     controller.h \
     databaseaccess.h \
+    finalavg.h \
+    finalavgtablemodel.h \
+    finalavgview.h \
     gradelistmodel.h \
     gradestableview.h \
     home.h \
@@ -53,8 +61,10 @@ HEADERS += \
     mainwindow.h \
     newstudentform.h \
     notespage.h \
+    pdfcreator.h \
     schoolyearsmodel.h \
     schoolyearsview.h \
+    settingspage.h \
     student.h \
     studentgrade.h \
     studentlistmodel.h \
@@ -71,6 +81,7 @@ FORMS += \
     mainwindow.ui \
     newstudentform.ui \
     notespage.ui \
+    settingspage.ui \
     studentpage.ui
 
 # Default rules for deployment.

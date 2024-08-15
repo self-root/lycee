@@ -9,6 +9,7 @@
 #include "studentpage.h"
 #include "klassespage.h"
 #include "notespage.h"
+#include "settingspage.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -40,12 +41,15 @@ private slots:
 
     void on_notesBtn_clicked();
 
+    void on_settingsButton_clicked();
+
 private:
     Ui::MainWindow *ui = nullptr;
     Home *homePage = nullptr;
     StudentPage *studentPage = nullptr;
     KlassesPage *klassPage = nullptr;
     NotesPage *notePage = nullptr;
+    SettingsPage *settingsPage = nullptr;
     QStackedLayout *stackedLayout = nullptr;
     //Controller *controller = nullptr;
     //MemberPage *memberPage = nullptr;

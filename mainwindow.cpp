@@ -25,11 +25,13 @@ MainWindow::MainWindow(QWidget *parent)
     studentPage = new StudentPage;
     klassPage = new KlassesPage;
     notePage = new NotesPage;
+    settingsPage = new SettingsPage;
     stackedLayout = new QStackedLayout;
     stackedLayout->addWidget(homePage);
     stackedLayout->addWidget(studentPage);
     stackedLayout->addWidget(klassPage);
     stackedLayout->addWidget(notePage);
+    stackedLayout->addWidget(settingsPage);
     ui->mainWidget->setLayout(stackedLayout);
     getScreenSize();
 }
@@ -71,7 +73,7 @@ void MainWindow::on_exitButton_clicked()
 
 void MainWindow::saveScreenSize()
 {
-    QSettings setting("iroot", "LyceeApp");
+    QSettings setting;
     setting.beginGroup("screenSize");
     setting.setValue("size", this->geometry());
     setting.endGroup();
@@ -79,7 +81,7 @@ void MainWindow::saveScreenSize()
 
 void MainWindow::getScreenSize()
 {
-    QSettings setting("iroot", "LyceeApp");
+    QSettings setting;
     QRect screenSize;
     setting.beginGroup("screenSize");
     screenSize  = setting.value("size", QRect(50, 50, 800, 600)).toRect();
@@ -117,5 +119,12 @@ void MainWindow::on_notesBtn_clicked()
 {
     if (stackedLayout->currentIndex() != 3)
         stackedLayout->setCurrentIndex(3);
+}
+
+
+void MainWindow::on_settingsButton_clicked()
+{
+    if (stackedLayout->currentIndex() != 4)
+        stackedLayout->setCurrentIndex(4);
 }
 

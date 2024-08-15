@@ -8,6 +8,7 @@
 #include "subject.h"
 #include "studentgrade.h"
 #include "trimesteravg.h"
+#include "finalavg.h"
 
 #include <QSqlDatabase>
 
@@ -85,6 +86,16 @@ public:
     void trimAVG(TrimesterAVG &avg);
 
     void updateGrade20(int gradeID, double grade20);
+
+    std::vector<FinalAVG> getFinalAVGs(int classID);
+
+    std::vector<TrimesterAVG> getTrimesterAVGs(int trimester, int klassID);
+
+    void addFinalAverage(FinalAVG &final);
+
+    void updateFinalAverage(const FinalAVG &final);
+
+    Klass classByID(int klassID);
 
 };
 

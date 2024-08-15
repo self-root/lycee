@@ -35,10 +35,10 @@ void DatabaseAccess::initDB(const QSqlDatabase &db)
     const QString KLASS = R"(
         CREATE TABLE IF NOT EXISTS "klass" (
             "id"	INTEGER,
-            "schoolYear"	INTEGER,
+            "f_schoolYear"	INTEGER,
             "klassName"	TEXT NOT NULL,
             PRIMARY KEY("id" AUTOINCREMENT),
-            FOREIGN KEY("schoolYear") REFERENCES "school_year"("id")
+            FOREIGN KEY("f_schoolYear") REFERENCES "school_year"("id")
         )
     )";
 
@@ -89,11 +89,11 @@ void DatabaseAccess::initDB(const QSqlDatabase &db)
     const QString FINAL_AVG = R"(
         CREATE TABLE IF NOT EXISTS "final_avg" (
             "avg_id"	INTEGER,
-            "final_avg"	INTEGER NOT NULL,
+            "avg"	INTEGER NOT NULL,
             "rank"	INTEGER,
-            "student"	INTEGER,
+            "f_student"	INTEGER,
             PRIMARY KEY("avg_id" AUTOINCREMENT),
-            FOREIGN KEY("student") REFERENCES "subject"("id")
+            FOREIGN KEY("f_student") REFERENCES "student"("id")
         )
     )";
 
@@ -110,47 +110,14 @@ void DatabaseAccess::initDB(const QSqlDatabase &db)
             "id"	INTEGER,
             "avg"	REAL,
             "rank"	INTEGER,
-            "trimester"	INTEGER,
+            "f_trimester"	INTEGER,
             "f_student"	INTEGER,
             "total"	REAL,
             PRIMARY KEY("id" AUTOINCREMENT),
-            FOREIGN KEY("f_student") REFERENCES "subject"("id"),
-            FOREIGN KEY("trimester") REFERENCES "trimester"("id")
+            FOREIGN KEY("f_student") REFERENCES "student"("id"),
+            FOREIGN KEY("f_trimester") REFERENCES "trimester"("id")
         )
     )";
-    /*QString queryString = R"(
-        INSERT INTO "school_year" ("id","schoolYear") VALUES (1,'2024 - 2025');
-        INSERT INTO "klass" ("id","schoolYear","klassName") VALUES (3,1,'Second 1'),
-         (4,1,'Second 2'),
-         (5,1,'Second 3');
-        INSERT INTO "student" ("id","name","matricule","dateNaiss","situation","sexe","f_klass","finalRank","finalAvg","studentNumber") VALUES (2,'BENITO Alida','2870-M','31-12-2005','Redoublant(e)','Garçon',3,-1,0.0,2),
-         (5,'BOTOUZAZA Marie Melyssa','2888-F','22-03-2006','Redoublant(e)','Fille',3,NULL,NULL,5);
-        INSERT INTO "subject" ("id","subjectName","subjectCoef","f_klass") VALUES (1,'Anglais',2,3),
-         (2,'Mathématiques',2,3),
-         (3,'Anglais',2,4),
-         (4,'Anglais',2,5),
-         (5,'Mathématiques',2,4),
-         (6,'Mathématiques',2,5),
-         (7,'SVT',2,3);
-        INSERT INTO "grade" ("id","grade","grade20","f_subject","f_student","f_trimester","skip") VALUES (2,23.0,-1.0,2,2,1,0),
-         (3,31.0,-1.0,1,2,1,0),
-         (4,35.0,-1.0,2,5,1,0),
-         (5,35.0,-1.0,7,5,1,0),
-         (6,30.0,-1.0,7,2,1,0),
-         (7,38.0,-1.0,1,5,1,0);
-        INSERT INTO "trimester" ("id","trimesterName","trim_number") VALUES (1,'Trimestre 1',1),
-         (2,'Trimestre 2',2),
-         (3,'Trimestre 3',3);
-        INSERT INTO "trimavg" ("id","avg","rank","trimester","f_student","total") VALUES (1,12.2,1,1,2,234.5);
-    )";
-    QSqlQuery query(queryString);
-
-    if (!query.exec())
-    {
-        setErrorMessage(QString("Could not init database: %1 DatabaseText: %2").arg(query.lastError().text()).arg(query.lastError().databaseText()));
-        qDebug() << errorMessage;
-        qDebug() << query.lastQuery();
-    }*/
 
     if (db.tables().contains("trimester"))
         return;
@@ -261,7 +228,7 @@ std::vector<Klass> DatabaseAccess::gestClasses(const QString &schoolYear)
 {
     std::vector<Klass> klasses;
     QSqlQuery query;
-    query.prepare("SELECT * FROM klass INNER JOIN school_year ON school_year.id = klass.schoolYear WHERE school_year.schoolYear = :schoolYear");
+    query.prepare("SELECT * FROM klass INNER JOIN school_year ON school_year.id = klass.f_schoolYear WHERE school_year.schoolYear = :schoolYear");
     query.bindValue(":schoolYear", schoolYear);
     if (query.exec())
     {
@@ -454,7 +421,7 @@ void DatabaseAccess::removeSchoolYear(const QString &schoolYear)
 void DatabaseAccess::addClass(const QString &className, int schoolYearID)
 {
     QSqlQuery query;
-    query.prepare(R"(INSERT INTO klass(schoolYear, klassName)
+    query.prepare(R"(INSERT INTO klass(f_schoolYear, klassName)
                     VALUES (:schoolYear, :klassName))");
     query.bindValue(":schoolYear", schoolYearID);
     query.bindValue(":klassName", className);
@@ -619,10 +586,11 @@ void DatabaseAccess::getTrimesterAverages(std::vector<TrimesterAVG> &averages, i
 {
     QSqlQuery query;
     query.prepare(R"(
-        SELECT trimavg.id as trimAVGid, avg, rank, trimester, f_student, total FROM trimavg
+        SELECT trimavg.id as trimAVGid, avg, rank, f_trimester, f_student, total
+        FROM trimavg
         INNER JOIN student
         ON student.id  = trimavg.f_student
-        WHERE student.f_klass = :klassID  AND trimester = :trimester
+        WHERE student.f_klass = :klassID  AND f_trimester = :trimester
     )");
 
     query.bindValue(":klassID", classID);
@@ -641,7 +609,7 @@ void DatabaseAccess::getTrimesterAverages(std::vector<TrimesterAVG> &averages, i
         trimAVG.id = query.value("trimAVGid").toInt();
         trimAVG.avg = query.value("avg").toDouble();
         trimAVG.rank = query.value("rank").toInt();
-        trimAVG.trimester = query.value("trimester").toInt();
+        trimAVG.trimester = query.value("f_trimester").toInt();
         trimAVG.studentid = query.value("f_student").toInt();
         trimAVG.total = query.value("total").toDouble();
 
@@ -653,7 +621,7 @@ void DatabaseAccess::addTrimesterAVG(TrimesterAVG &trimAVG)
 {
     QSqlQuery query;
     query.prepare(R"(
-        INSERT INTO trimAVG(avg, rank, trimester, f_student, total)
+        INSERT INTO trimAVG(avg, rank, f_trimester, f_student, total)
         VALUES (:avg, :rank, :trimester, :f_student, :total)
     )");
 
@@ -679,14 +647,14 @@ void DatabaseAccess::updateTrimAVG(const TrimesterAVG &trimAVG)
     QSqlQuery query;
     query.prepare(R"(
         UPDATE trimavg
-        SET avg = :avg, rank = :rank, trimester = :trimester, f_student = :f_student, total = :total
+        SET avg = :avg, rank = :rank, total = :total
         WHERE id = :id
     )");
 
     query.bindValue(":avg", trimAVG.avg);
     query.bindValue(":rank", trimAVG.rank);
-    query.bindValue(":trimester", trimAVG.trimester);
-    query.bindValue(":f_student", trimAVG.studentid);
+    //query.bindValue(":trimester", trimAVG.trimester);
+    //query.bindValue(":f_student", trimAVG.studentid);
     query.bindValue(":total", trimAVG.total);
     query.bindValue(":id", trimAVG.id);
 
@@ -772,7 +740,7 @@ void DatabaseAccess::trimAVG(TrimesterAVG &avg)
         SELECT id
         FROM trimavg
         WHERE f_student = :f_student
-        AND trimester = :trimester
+        AND f_trimester = :trimester
     )");
 
     query.bindValue(":f_student", avg.studentid);
@@ -809,6 +777,147 @@ void DatabaseAccess::updateGrade20(int gradeID, double grade20)
         setErrorMessage(QString("Grade20 update error %1").arg(query.lastError().text()));
         qDebug() << errorMessage;
     }
+}
+
+std::vector<FinalAVG> DatabaseAccess::getFinalAVGs(int classID)
+{
+    std::vector<FinalAVG> avgs;
+    QSqlQuery query;
+    query.prepare(R"(
+        SELECT avg_id, avg, rank, f_student
+        FROM final_avg
+        INNER JOIN student
+        ON student.id = f_student
+        WHERE student.f_klass = :klassID
+    )");
+
+    query.bindValue(":klassID", classID);
+
+    if (!query.exec())
+    {
+        setErrorMessage(QString("Final AVGs reading error update error %1").arg(query.lastError().text()));
+        qDebug() << errorMessage;
+        return avgs;
+    }
+
+    while (query.next())
+    {
+        FinalAVG avg;
+        avg.setId(query.value("avg_id").toInt());
+        avg.setAvg(query.value("avg").toDouble());
+        avg.setRank(query.value("rank").toInt());
+        avg.setStudentId(query.value("f_student").toInt());
+
+        avgs.push_back(avg);
+    }
+    return avgs;
+}
+
+std::vector<TrimesterAVG> DatabaseAccess::getTrimesterAVGs(int trimester, int klassID)
+{
+    std::vector<TrimesterAVG> avgs;
+
+    QSqlQuery query;
+    query.prepare(R"(
+        SELECT trimavg.id AS trimavg_id, avg, rank, f_trimester, f_student, total
+        FROM trimavg
+        INNER JOIN student
+        ON student.id = f_student
+        WHERE f_trimester = :trimester AND f_klass = :klassID
+    )");
+
+    query.bindValue(":trimester", trimester);
+    query.bindValue(":klassID", klassID);
+
+    if (!query.exec())
+    {
+        setErrorMessage(QString("Trimester AVGs reading error %1").arg(query.lastError().text()));
+        qDebug() << errorMessage;
+        return avgs;
+    }
+
+    while (query.next())
+    {
+        TrimesterAVG avg;
+        avg.trimester = trimester;
+        avg.avg = query.value("avg").toDouble();
+        avg.id = query.value("trimavg_id").toInt();
+        avg.total = query.value("total").toDouble();
+        avg.rank = query.value("rank").toInt();
+        avg.studentid = query.value("f_student").toInt();
+        avgs.push_back(avg);
+    }
+
+    return avgs;
+}
+
+void DatabaseAccess::addFinalAverage(FinalAVG &final)
+{
+    QSqlQuery query;
+    query.prepare(R"(
+        INSERT INTO final_avg(avg, rank, f_student)
+        VALUES (:final, :rank, :f_student)
+    )");
+    query.bindValue(":final", final.avg());
+    query.bindValue(":rank", final.rank());
+    query.bindValue(":f_student", final.studentId());
+
+    if (query.exec())
+        final.setId(query.lastInsertId().toInt());
+
+    else
+    {
+        setErrorMessage(QString("Final average insert error %1").arg(query.lastError().text()));
+        qDebug() << errorMessage;
+    }
+}
+
+void DatabaseAccess::updateFinalAverage(const FinalAVG &final)
+{
+    QSqlQuery query;
+    query.prepare(R"(
+        UPDATE final_avg
+        SET avg = :final, rank = :rank
+        WHERE avg_id = :id
+    )");
+    query.bindValue(":final", final.avg());
+    query.bindValue(":rank", final.rank());
+    query.bindValue(":id", final.id());
+
+    if (!query.exec())
+    {
+        setErrorMessage(QString("Final average UPDATE error %1").arg(query.lastError().text()));
+        qDebug() << errorMessage;
+    }
+}
+
+Klass DatabaseAccess::classByID(int klassID)
+{
+    Klass klass;
+    QSqlQuery query;
+    query.prepare(R"(
+        SELECT * FROM klass WHERE id = :id
+    )");
+
+    query.bindValue(":id", klassID);
+
+    if (query.exec())
+    {
+        if (query.next())
+        {
+            klass.setClassId(klassID);
+            klass.setClassName(query.value("klassName").toString());
+        }
+    }
+
+    else
+    {
+        setErrorMessage(QString("Class by ID reading error %1").arg(query.lastError().text()));
+        qDebug() << errorMessage;
+    }
+
+    return klass;
+
 }
 
 
