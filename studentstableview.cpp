@@ -54,6 +54,13 @@ void StudentsTableView::contextMenuEvent(QContextMenuEvent *event)
     menu->exec(event->globalPos());
 }
 
+void StudentsTableView::currentChanged(const QModelIndex &current, const QModelIndex &previous)
+{
+    Q_UNUSED(previous)
+    QString currentStudentName = proxyModel->data(current.sibling(current.row(), 1)).toString();
+    qDebug() <<  currentStudentName;
+}
+
 void StudentsTableView::onSaveStudent(Student student)
 {
     model->addStudent(student);

@@ -2,6 +2,7 @@
 #define GRADELISTMODEL_H
 
 #include <QAbstractTableModel>
+#include <QLocale>
 
 #include <vector>
 
@@ -66,6 +67,7 @@ private:
     int currentClass = -1;
     int currentTrimester = -1;
     void makeHeader();
+    QLocale locale;
 };
 
 #endif // GRADELISTMODEL_H

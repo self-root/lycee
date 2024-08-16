@@ -26,6 +26,8 @@ public:
 
     void contextMenuEvent(QContextMenuEvent *event) override;
 
+    void currentChanged(const QModelIndex &current, const QModelIndex &previous) override;
+
 public slots:
     void onSaveStudent(Student student);
     void onUpdateStudent(Student student);

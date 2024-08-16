@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QMap>
+#include <QLocale>
 
 class GradeMetaData;
 class Student;
@@ -22,6 +23,7 @@ public slots:
     void createFinalTranscipt(int classID, QString out , QMap<QString, QString> schoolInfo_, const QString &schoolYear);
 
 private:
+    QLocale locale;
     QString filePath;
     QMap<QString, QString> schoolInfo;
 
@@ -137,30 +139,31 @@ private:
     QString final_footer = R"(
         <table>
             <tr>
-                <td> Moyenne Trim 1: %1 Moyenne Trim 2: %2 Moyenne G : %3</td>
+                <td colspan='3'> Moyenne Trim 1: %1 Moyenne Trim 2: %2 Moyenne G : %3</td>
             </tr>
             <tr>
 
-                <td colspan="3">OBSERVATION GENERALE OU DECISION DU CONSEIL DE CLASSE</td>
+                <td colspan='3'>OBSERVATION GENERALE OU DECISION DU CONSEIL DE CLASSE</td>
 
             </tr>
             <tr>
-                <td colspan="3">Admis en classe supérieure / Redouble sa classe</td>
+                <td colspan='3'>Admis en classe supérieure / Redouble sa classe</td>
             </tr>
             <tr>
                 <td>Remise à sa famille</td>
-                <td>Motif: </td>
+                <td colspan='2'>Motif: </td>
             </tr>
             <tr>
                 <td>Parent</td>
-                <td align="right">%4 le<br>Proviseur,</td>
+                <td align="center" colspan='2'>%4 le<br>Proviseur,</td>
 
             </tr>
             <tr>
                 <td style="height: 40px;"></td>
             </tr>
             <tr>
-                <td colspan="3" align="right">%5</td>
+                <td> </td>
+                <td align="right" colspan='2' align='center'>%5</td>
             </tr>
         </table>
     )";

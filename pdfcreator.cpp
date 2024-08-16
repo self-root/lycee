@@ -15,7 +15,7 @@
 PdfCreator::PdfCreator(QObject *parent)
     : QObject{parent}
 {
-
+    QLocale::setDefault(QLocale::French);
 }
 
 void PdfCreator::createTranscript(int classID, int trimester, QString out, QMap<QString, QString> schoolInfo_, const QString &schoolYear)
@@ -68,9 +68,9 @@ void PdfCreator::createTranscript(int classID, int trimester, QString out, QMap<
                     continue;
                 htmlText += subjectRows
                 .arg(subject.subjectName())
-                .arg(grade.grade20)
+                                .arg(locale.toString(grade.grade20, 'g', 4))
                 .arg(grade.coef)
-                .arg(grade.grade)
+                                .arg(locale.toString(grade.grade, 'g', 4))
                 .arg(appreciation(grade.grade20));
 
                 totalCoef += grade.coef;
@@ -78,11 +78,11 @@ void PdfCreator::createTranscript(int classID, int trimester, QString out, QMap<
             }
 
             htmlText += tootal_rank_part
-                .arg(grade20_total)
+                            .arg(locale.toString(grade20_total, 'g', 5))
                 .arg(totalCoef)
-                .arg(trimAvg.total)
-                .arg(trimAvg.avg)
-                .arg(classAVG)
+                            .arg(locale.toString(trimAvg.total, 'g', 5))
+                            .arg(locale.toString(trimAvg.avg, 'g', 4))
+                            .arg(locale.toString(classAVG, 'g', 4))
                 .arg(trimAvg.rank)
                 .arg(students.size());
 
@@ -182,9 +182,9 @@ void PdfCreator::createFinalTranscipt(int classID, QString out, QMap<QString, QS
                     continue;
                 htmlText += subjectRows
                                 .arg(subject.subjectName())
-                                .arg(grade.grade20)
+                                .arg(locale.toString(grade.grade20, 'g', 4))
                                 .arg(grade.coef)
-                                .arg(grade.grade)
+                                .arg(locale.toString(grade.grade, 'g', 4))
                                 .arg(appreciation(grade.grade20));
 
                 totalCoef += grade.coef;
@@ -192,11 +192,11 @@ void PdfCreator::createFinalTranscipt(int classID, QString out, QMap<QString, QS
             }
 
             htmlText += final_total_rank_part
-                            .arg(grade20_total)
+                            .arg(locale.toString(grade20_total, 'g', 5))
                             .arg(totalCoef)
-                            .arg(trimAvg.total)
-                            .arg(trimAvg.avg)
-                            .arg(classAVG)
+                            .arg(locale.toString(trimAvg.total, 'g', 5))
+                            .arg(locale.toString(trimAvg.avg, 'g', 4))
+                            .arg(locale.toString(classAVG, 'g', 4))
                             .arg(trimAvg.rank)
                             .arg(students.size())
                             .arg(finalAvg.rank())
@@ -207,9 +207,9 @@ void PdfCreator::createFinalTranscipt(int classID, QString out, QMap<QString, QS
             htmlText += "</table>";
 
             htmlText += final_footer
-                            .arg(trimAvg_1.avg)
-                            .arg(trimAvg_2.avg)
-                            .arg(finalAvg.avg())
+                            .arg(locale.toString(trimAvg_1.avg, 'g', 4))
+                            .arg(locale.toString(trimAvg_2.avg, 'g', 4))
+                            .arg(locale.toString(finalAvg.avg(), 'g', 4))
                             .arg(schoolInfo_.value("place"))
                             .arg(schoolInfo_.value("principal"));
 
