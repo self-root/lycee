@@ -87,9 +87,9 @@ void StudentsTableView::onPasteAction(bool _)
 void StudentsTableView::setupMenu()
 {
     menu = new QMenu(this);
-    addAction = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::ListAdd), "Ajouter");
+    addAction = new QAction("Ajouter");
     editAction = new QAction("Editer");
-    removeAction = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::ListRemove),"Supprimer");
+    removeAction = new QAction("Supprimer");
     pasteAction = new QAction(QIcon(":/icons/images/paste.png"), "Coller");
 
     menu->addAction(addAction);

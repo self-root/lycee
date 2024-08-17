@@ -2,6 +2,9 @@
 #define HOME_H
 
 #include <QWidget>
+#include <QQuickWidget>
+#include <QShowEvent>
+#include <QHideEvent>
 
 #include "homecontroller.h"
 
@@ -17,9 +20,14 @@ public:
     explicit Home(QWidget *parent = nullptr);
     ~Home();
 
+    void showEvent(QShowEvent *event) override;
+
+    void hideEvent(QHideEvent *event) override;
+
 private:
     Ui::Home *ui;
-    HomeController *homeController = nullptr;
+    HomeController homeController;
+    QQuickWidget *quickWidget = nullptr;
 };
 
 #endif // HOME_H

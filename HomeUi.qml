@@ -4,16 +4,18 @@ import QtCharts
 import QtQuick.Layouts
 
 Item {
+    id: root
+
     Rectangle{
-        id: root
+        id: rect_
         anchors.fill: parent
         color: "white"
 
         Text {
             id: schoolNameLabel
-            anchors.top: parent.top
+            anchors.horizontalCenter: rect_.horizontalCenter
+            anchors.top: rect_.top
             anchors.topMargin: 10
-            anchors.horizontalCenter: parent.horizontalCenter;
             text: homeController.schoolName + " " + schoolYearCombo.currentText
             font.pixelSize: 18
             font.bold: true

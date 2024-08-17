@@ -3,18 +3,36 @@
 #include <QUrl>
 #include <QQmlContext>
 
+
 Home::Home(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::Home)
 {
     ui->setupUi(this);
-    homeController = new HomeController;
-    QQmlContext *context = ui->quickWidget->rootContext();
-    context->setContextProperty("homeController", homeController);
-    ui->quickWidget->setSource(QUrl("qrc:/HomeUi.qml"));
 }
 
 Home::~Home()
 {
     delete ui;
+}
+
+void Home::showEvent(QShowEvent *event)
+{
+    if (quickWidget == nullptr)
+    {
+        quickWidget = new QQuickWidget(QUrl("qrc:/HomeUi.qml"));
+        quickWidget->setResizeMode(QQuickWidget::SizeRootObjectToView);
+        QQmlContext *context = quickWidget->rootContext();
+        context->setContextProperty("homeController", &homeController);
+        ui->mainLayout->addWidget(quickWidget);
+    }
+}
+
+void Home::hideEvent(QHideEvent *event)
+{
+    if (quickWidget != nullptr)
+    {
+        delete quickWidget;
+        quickWidget = nullptr;
+    }
 }
