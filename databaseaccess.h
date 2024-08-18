@@ -15,7 +15,7 @@
 class DatabaseAccess : public QObject
 {
     Q_OBJECT
-protected:
+public:
     explicit DatabaseAccess(QObject *parent = nullptr);
 
 private:
@@ -25,12 +25,15 @@ private:
     const QString dbName = "lyceedata";
     void setErrorMessage(const QString &error);
     void initDB(const QSqlDatabase &db);
+    QSqlDatabase database;
 
 public:
     static DatabaseAccess *instance();
     bool hasDbError();
     QString getErrorMessage();
     void openDB();
+
+    QSqlDatabase getDatabase();
 
     std::vector<Student> loadStudentsByClass(int classID);
 
@@ -55,6 +58,8 @@ public:
     void removeSchoolYear(const QString &schoolYear);
 
     void addClass(const QString &className, int schoolYearID);
+
+    void removeKlass(const Klass &klass);
 
     void addSubject(Subject &subject, int classID);
 
@@ -100,6 +105,8 @@ public:
     int getStudentCount(const QString &schoolYear);
 
     int getSexeCount(const QString &schoolYear, const QString &sexe);
+
+    int studentCountByClass(int klassID);
 
 };
 

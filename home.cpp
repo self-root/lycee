@@ -36,3 +36,8 @@ void Home::hideEvent(QHideEvent *event)
         quickWidget = nullptr;
     }
 }
+
+void Home::onSchoolYearsChanged()
+{
+    homeController.onSchoolYearsChanged();
+}

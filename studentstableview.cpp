@@ -6,6 +6,7 @@
 #include <QMimeData>
 #include <QClipboard>
 #include <QApplication>
+#include <QMessageBox>
 
 StudentsTableView::StudentsTableView(QTableView *parent) : QTableView(parent)
 {
@@ -74,6 +75,32 @@ void StudentsTableView::onUpdateStudent(Student student)
     Controller::instance()->checkDbError();
 }
 
+void StudentsTableView::onDeleteAction(bool triggered)
+{
+    Q_UNUSED(triggered)
+    if (!currentIndex().isValid())
+        return;
+
+    int ret = QMessageBox::warning(this, "Effacer un/une élève", QString("Supprimer %1 de la base de données?").arg(selectedStudent().name()), QMessageBox::Button::Cancel | QMessageBox::Button::Ok);
+    if (ret == QMessageBox::Button::Ok)
+        deleteStudent();
+    else {
+        return;
+    }
+}
+
+void StudentsTableView::onAddAction(bool _)
+{
+    Q_UNUSED(_)
+    emit addStudent();
+}
+
+void StudentsTableView::onUpdateAction(bool _)
+{
+    Q_UNUSED(_);
+    emit updateStudent();
+}
+
 void StudentsTableView::onPasteAction(bool _)
 {
     Q_UNUSED(_);
@@ -87,9 +114,9 @@ void StudentsTableView::onPasteAction(bool _)
 void StudentsTableView::setupMenu()
 {
     menu = new QMenu(this);
-    addAction = new QAction("Ajouter");
-    editAction = new QAction("Editer");
-    removeAction = new QAction("Supprimer");
+    addAction = new QAction(QIcon(":/icons/images/add_student.png"), "Ajouter");
+    editAction = new QAction(QIcon(":/icons/images/edit-profile.png"), "Editer");
+    removeAction = new QAction(QIcon(":/icons/images/delete.png"), "Supprimer");
     pasteAction = new QAction(QIcon(":/icons/images/paste.png"), "Coller");
 
     menu->addAction(addAction);
@@ -98,5 +125,8 @@ void StudentsTableView::setupMenu()
     menu->addSeparator();
     menu->addAction(pasteAction);
 
+    QObject::connect(removeAction, &QAction::triggered, this, &StudentsTableView::onDeleteAction);
     QObject::connect(pasteAction, &QAction::triggered, this, &StudentsTableView::onPasteAction);
+    QObject::connect(addAction, &QAction::triggered, this, &StudentsTableView::onAddAction);
+    QObject::connect(editAction, &QAction::triggered, this, &StudentsTableView::onUpdateAction);
 }

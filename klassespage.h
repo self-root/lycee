@@ -37,6 +37,9 @@ private:
     SubjectListTableView *subjectTableView = nullptr;
     SchoolYearsView *schoolYearsView = nullptr;
     Subject currentSubject;
+signals:
+    void schoolYearAded();
+    void schoolYearRemoved();
 };
 
 #endif // KLASSESPAGE_H

@@ -47,6 +47,7 @@ void SchoolYearsModel::addScoolYear(const QString &SchoolYear)
 void SchoolYearsModel::removeSchoolYear(const QString &schoolYear)
 {
     DatabaseAccess::instance()->removeSchoolYear(schoolYear);
+    Controller::instance()->checkDbError();
     loadSchoolYears();
 }
 

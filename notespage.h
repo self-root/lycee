@@ -47,12 +47,14 @@ private slots:
 
     void onCreateTranscript(bool _);
 
+public slots:
+    void loadSchoolYear();
+
 private:
     Ui::NotesPage *ui;
     QTabWidget *tabWidget = nullptr;
     GradesTableView *gradesView = nullptr;
     FinalAVGView *generalAVGView = nullptr;
-    void loadSchoolYear();
     void clearGradeForm();
     void setupToolBar();
     QToolBar *toolbar = nullptr;

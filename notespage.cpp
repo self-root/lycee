@@ -101,6 +101,9 @@ void NotesPage::setGradeData()
 
 void NotesPage::loadSchoolYear()
 {
+    ui->schoolYearCombo->clear();
+    ui->schoolYearCombo->addItem("--");
+    Controller::instance()->getSchoolyears();
     for (const QString &year: Controller::instance()->schoolYears)
         ui->schoolYearCombo->addItem(year);
 }
@@ -108,13 +111,13 @@ void NotesPage::loadSchoolYear()
 void NotesPage::clearGradeForm()
 {
     ui->gradeSpin->clear();
-    ui->skipSubjectCheck->setDisabled(true);
+    ui->skipSubjectCheck->setChecked(false);
 }
 
 void NotesPage::setupToolBar()
 {
     toolbar = new QToolBar;
-    toolbar->setIconSize(QSize(32, 32));
+    //toolbar->setIconSize(QSize(32, 32));
     toolbar->setMovable(true);
     toolbar->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
     pasteAction = new QAction(QIcon(":/icons/images/paste.png"), "Coller");
@@ -212,7 +215,7 @@ void NotesPage::onComputeFinalAVG(bool _)
 void NotesPage::onCreateTranscript(bool _)
 {
     qDebug() << __FUNCTION__;
-    int currentTrimester = ui->trimestreCombo->currentIndex() + 1;
+    //int currentTrimester = ui->trimestreCombo->currentIndex() + 1;
 
     QFileDialog fileDialog;
     fileDialog.setAcceptMode(QFileDialog::AcceptSave);

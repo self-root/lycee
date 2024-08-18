@@ -4,6 +4,8 @@
 #include <QPainter>
 #include <QFile>
 #include <QDir>
+#include <QStandardPaths>
+#include <QDate>
 
 #include "databaseaccess.h"
 #include "student.h"
@@ -11,29 +13,35 @@
 #include "studentgrade.h"
 #include "subject.h"
 #include "finalavg.h"
+#include "controller.h"
+#include "databaseaccess.h"
+#include "avgcalculator.h"
 
 PdfCreator::PdfCreator(QObject *parent)
     : QObject{parent}
 {
-    QLocale::setDefault(QLocale::French);
+    dbAccess = new DatabaseAccess;
 }
 
-void PdfCreator::createTranscript(int classID, int trimester, QString out, QMap<QString, QString> schoolInfo_, const QString &schoolYear)
+void PdfCreator::createTranscript(int classID, int trimester, QString out, const QString &schoolYear)
 {
     qDebug() << "Creating PDF...";
     qDebug() << "ClassID: " << classID;
     qDebug() << "trimester: " << trimester;
-    std::vector<Student> students = DatabaseAccess::instance()->loadStudentsByClass(classID);
-    std::vector<TrimesterAVG> trimesterAVGs = DatabaseAccess::instance()->getTrimesterAVGs(trimester, classID);
-    std::vector<Subject> subjects = DatabaseAccess::instance()->getSubjectByClass(classID);
+    QMap<QString, QString> schoolInfo_ = Controller::instance()->getSchoolSettings();
+    std::vector<Student> students = dbAccess->loadStudentsByClass(classID);
+    std::vector<TrimesterAVG> trimesterAVGs = dbAccess->getTrimesterAVGs(trimester, classID);
+    AVGCalculator::sortAVG(trimesterAVGs);
+    std::vector<Subject> subjects = dbAccess->getSubjectByClass(classID);
     std::vector<StudentGrade> grades;
     qDebug() << "Trimavgs size: " << trimesterAVGs.size() << "Students: " << students.size();
 
-    Klass klass = DatabaseAccess::instance()->classByID(classID);
-    DatabaseAccess::instance()->studentGrades(classID, trimester, grades, students, subjects);
+    Klass klass = dbAccess->classByID(classID);
+    dbAccess->studentGrades(classID, trimester, grades, students, subjects);
 
     double classAVG = classAverage(trimesterAVGs);
     QString htmlText;
+    QString currentDate = locale.toString(QDate::currentDate(), "dd MMM yyyy");
 
     htmlText += R"(<table width=100% height=100% style="border: 1px solid black; border-collapse: collapse; width: 100%;">)";
 
@@ -67,11 +75,11 @@ void PdfCreator::createTranscript(int classID, int trimester, QString out, QMap<
                 if (grade.skip)
                     continue;
                 htmlText += subjectRows
-                .arg(subject.subjectName())
+                                .arg(subject.subjectName())
                                 .arg(locale.toString(grade.grade20, 'g', 4))
-                .arg(grade.coef)
+                                .arg(grade.coef)
                                 .arg(locale.toString(grade.grade, 'g', 4))
-                .arg(appreciation(grade.grade20));
+                                .arg(appreciation(grade.grade20));
 
                 totalCoef += grade.coef;
                 grade20_total += grade.grade20;
@@ -79,18 +87,21 @@ void PdfCreator::createTranscript(int classID, int trimester, QString out, QMap<
 
             htmlText += tootal_rank_part
                             .arg(locale.toString(grade20_total, 'g', 5))
-                .arg(totalCoef)
+                            .arg(totalCoef)
                             .arg(locale.toString(trimAvg.total, 'g', 5))
                             .arg(locale.toString(trimAvg.avg, 'g', 4))
                             .arg(locale.toString(classAVG, 'g', 4))
-                .arg(trimAvg.rank)
-                .arg(students.size());
+                            .arg(trimAvg.rank)
+                            .arg(students.size());
 
 
 
             htmlText += "</table>";
 
-            htmlText += footer.arg(schoolInfo_.value("place")).arg(schoolInfo_.value("principal"));
+            htmlText += footer
+                    .arg(schoolInfo_.value("place"))
+                    .arg(currentDate)
+                    .arg(schoolInfo_.value("principal"));
 
             htmlText += "</td>";
 
@@ -127,25 +138,28 @@ void PdfCreator::createTranscript(int classID, int trimester, QString out, QMap<
     emit pdfCreated();
 }
 
-void PdfCreator::createFinalTranscipt(int classID, QString out, QMap<QString, QString> schoolInfo_, const QString &schoolYear)
+void PdfCreator::createFinalTranscipt(int classID, QString out, const QString &schoolYear)
 {
-    std::vector<Student> students = DatabaseAccess::instance()->loadStudentsByClass(classID);
-    std::vector<TrimesterAVG> trimesterAVGs_1 = DatabaseAccess::instance()->getTrimesterAVGs(1, classID);
-    std::vector<TrimesterAVG> trimesterAVGs_2 = DatabaseAccess::instance()->getTrimesterAVGs(2, classID);
-    std::vector<TrimesterAVG> trimesterAVGs_3 = DatabaseAccess::instance()->getTrimesterAVGs(3, classID);
-    std::vector<Subject> subjects = DatabaseAccess::instance()->getSubjectByClass(classID);
+    auto schoolInfo_ = Controller::instance()->getSchoolSettings();
+    std::vector<Student> students = dbAccess->loadStudentsByClass(classID);
+    std::vector<TrimesterAVG> trimesterAVGs_1 = dbAccess->getTrimesterAVGs(1, classID);
+    std::vector<TrimesterAVG> trimesterAVGs_2 = dbAccess->getTrimesterAVGs(2, classID);
+    std::vector<TrimesterAVG> trimesterAVGs_3 = dbAccess->getTrimesterAVGs(3, classID);
+    std::vector<Subject> subjects = dbAccess->getSubjectByClass(classID);
     std::vector<StudentGrade> grades;
     qDebug() << "Trimavgs size: " << trimesterAVGs_1.size() << "Students: " << students.size();
 
-    Klass klass = DatabaseAccess::instance()->classByID(classID);
-    DatabaseAccess::instance()->studentGrades(classID, 3, grades, students, subjects);
+    Klass klass = dbAccess->classByID(classID);
+    dbAccess->studentGrades(classID, 3, grades, students, subjects);
+    QString currentDate = locale.toString(QDate::currentDate(), "dd MMM yyyy");
 
     double classAVG = classAverage(trimesterAVGs_3);
     QString htmlText;
 
     htmlText += R"(<table width=100% height=100% style="border: 1px solid black; border-collapse: collapse; width: 100%;">)";
 
-    std::vector<FinalAVG> finals = DatabaseAccess::instance()->getFinalAVGs(classID);
+    std::vector<FinalAVG> finals = dbAccess->getFinalAVGs(classID);
+    AVGCalculator::sortFinalAVG(finals);
 
     for (const FinalAVG &finalAvg : finals)
     {
@@ -211,6 +225,7 @@ void PdfCreator::createFinalTranscipt(int classID, QString out, QMap<QString, QS
                             .arg(locale.toString(trimAvg_2.avg, 'g', 4))
                             .arg(locale.toString(finalAvg.avg(), 'g', 4))
                             .arg(schoolInfo_.value("place"))
+                            .arg(currentDate)
                             .arg(schoolInfo_.value("principal"));
 
             htmlText += "</td>";

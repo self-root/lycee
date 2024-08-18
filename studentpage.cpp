@@ -2,6 +2,7 @@
 #include "ui_studentpage.h"
 #include "controller.h"
 #include <QMessageBox>
+#include <QIcon>
 
 StudentPage::StudentPage(QWidget *parent)
     : QWidget(parent)
@@ -10,6 +11,7 @@ StudentPage::StudentPage(QWidget *parent)
     ui->setupUi(this);
     tableView = new StudentsTableView;
     ui->studentPageLeftLayout->addWidget(tableView);
+    setupActions();
     setSchoolYearComboboxValues();
     newStudentForm = new NewStudentForm;
 
@@ -17,6 +19,8 @@ StudentPage::StudentPage(QWidget *parent)
     QObject::connect(ui->classCombo, &QComboBox::activated, this, &StudentPage::onKlassComboActivated);
     QObject::connect(newStudentForm, &NewStudentForm::saveStudent, tableView, &StudentsTableView::onSaveStudent);
     QObject::connect(newStudentForm, &NewStudentForm::updateStudent, tableView, &StudentsTableView::onUpdateStudent);
+    QObject::connect(tableView, &StudentsTableView::addStudent, this, &StudentPage::on_addStudentBtn_clicked);
+    QObject::connect(tableView, &StudentsTableView::updateStudent, this, &StudentPage::on_editStidentBtn_clicked);
 }
 
 StudentPage::~StudentPage()
@@ -26,8 +30,48 @@ StudentPage::~StudentPage()
 
 void StudentPage::setSchoolYearComboboxValues()
 {
+    ui->schoolYearCombo->clear();
+    ui->schoolYearCombo->addItem("--");
+    Controller::instance()->getSchoolyears();
     for (const QString &year: Controller::instance()->schoolYears)
         ui->schoolYearCombo->addItem(year);
+}
+
+void StudentPage::setupActions()
+{
+    toolBar = new QToolBar;
+    toolBar->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+    toolBar->setMovable(true);
+    addAction = new QAction(QIcon(":/icons/images/add_student.png"), "Ajouter");
+    editAction = new QAction(QIcon(":/icons/images/edit-profile.png"), "Editer");
+    removeAction = new QAction(QIcon(":/icons/images/delete.png"), "Supprimer");
+    toolBar->addAction(addAction);
+    toolBar->addAction(editAction);
+    toolBar->addAction(removeAction);
+
+    ui->actionLayout->addWidget(toolBar);
+
+    QObject::connect(addAction, &QAction::triggered, this, [&](bool _){
+        Q_UNUSED(_)
+        this->on_addStudentBtn_clicked();
+    });
+
+    QObject::connect(removeAction, &QAction::triggered, this, [&](bool _){
+        Q_UNUSED(_)
+        this->on_removeStudentBtn_clicked();
+    });
+
+    QObject::connect(editAction, &QAction::triggered, this, [&](bool _){
+        Q_UNUSED(_)
+        this->on_editStidentBtn_clicked();
+    });
+
+}
+
+
+void StudentPage::onSchoolYearAdded()
+{
+    setSchoolYearComboboxValues();
 }
 
 void StudentPage::onScoolYearComboIndexChanged(int i)

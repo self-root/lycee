@@ -71,7 +71,7 @@ void KlassListModel::loadData(const QString &schoolYear)
     endResetModel();
 }
 
-Klass KlassListModel::subjectAt(int index)
+Klass KlassListModel::klassAt(int index)
 {
     Klass klass;
     if (std::size_t(index) < klasses.size())
@@ -89,4 +89,11 @@ void KlassListModel::addClass(const QString &className)
     }
     Controller::instance()->checkDbError();
 
+}
+
+void KlassListModel::removeKlass(const Klass &klass)
+{
+    DatabaseAccess::instance()->removeKlass(klass);
+    Controller::instance()->checkDbError();
+    loadData(currentSchoolYear);
 }

@@ -31,6 +31,9 @@ public:
 public slots:
     void onSaveStudent(Student student);
     void onUpdateStudent(Student student);
+    void onDeleteAction(bool triggered);
+    void onAddAction(bool _);
+    void onUpdateAction(bool _);
     void onPasteAction(bool _);
 private:
     StudentListModel *model;
@@ -42,6 +45,10 @@ private:
     QAction *pasteAction = nullptr;
 
     void setupMenu();
+
+signals:
+    void addStudent();
+    void updateStudent();
 };
 
 #endif // STUDENTSTABLEVIEW_H

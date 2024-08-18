@@ -5,6 +5,61 @@ import QtQuick.Layouts
 
 Item {
     id: root
+    function loadSeriesData(){
+        console.log("Model count: " + homeController.distroByLevel.countData());
+        homeController.distroByLevel.setSchoolYear(schoolYearCombo.currentText);
+        homeController.distroByLevel.loadData();
+        klassDistributionSeries.clear()
+        for(var i = 0; i < homeController.distroByLevel.countData(); i++)
+        {
+            var label = homeController.distroByLevel.labelAt(i);
+            var value = homeController.distroByLevel.valueAt(i);
+            console.log(homeController.distroByLevel.labelAt(i));
+            console.log(homeController.distroByLevel.valueAt(i));
+            klassDistributionSeries.append(label, value);
+        }
+    }
+
+    function setSerieColors(){
+        klassDistributionSeries.find("Seconde").color = secondRect.color
+        klassDistributionSeries.find("Premiere").color = premiereRect.color
+        klassDistributionSeries.find("Terminale").color = terminalRect.color
+    }
+
+    function getCurrentDay(){
+        var today = new Date();
+        var day = today.getDate();
+        console.log("CurrentDay: " + day)
+        return day;
+    }
+
+    function getCurrentMonth(){
+        var today = new Date();
+        var month = today.getMonth();
+        return month;
+    }
+
+    function getCurrentYear(){
+        var today = new Date();
+        var year = today.getFullYear()
+        return year;
+    }
+
+    function getCurrentFullMonth()
+    {
+        var today = new Date();
+        var month = Qt.formatDate(today, "MMMM")
+        return month
+    }
+
+    Component.onCompleted:{
+        console.log("Completed")
+        homeController.currentSchoolYear = schoolYearCombo.currentText
+        loadSeriesData()
+        setSerieColors()
+        console.log("Current schoolYear: " + schoolYearCombo.currentText)
+        getCurrentDay()
+    }
 
     Rectangle{
         id: rect_
@@ -16,7 +71,7 @@ Item {
             anchors.horizontalCenter: rect_.horizontalCenter
             anchors.top: rect_.top
             anchors.topMargin: 10
-            text: homeController.schoolName + " " + schoolYearCombo.currentText
+            text: homeController.schoolName + " " + homeController.currentSchoolYear
             font.pixelSize: 18
             font.bold: true
         }
@@ -29,7 +84,11 @@ Item {
             anchors.topMargin: 12
 
             model: homeController.schoolYearModel
-            //textRole: schoolYear
+            onActivated: {
+                homeController.currentSchoolYear = schoolYearCombo.currentText
+                loadSeriesData()
+                setSerieColors()
+            }
         }
 
         Rectangle{
@@ -111,8 +170,6 @@ Item {
                     }
                 }
             }
-
-
         }
 
         Rectangle{
@@ -165,6 +222,7 @@ Item {
             anchors.left: girlsNumberRect.right
             anchors.topMargin: 10
             anchors.leftMargin: 20
+            //anchors.right: parent.right
             width: 400
             height: 400
             ChartView{
@@ -175,20 +233,23 @@ Item {
                 antialiasing: true
                 animationOptions: ChartView.AllAnimations
 
+
                 PieSeries{
                     id: klassDistributionSeries
-
                     PieSlice{
-                        label: "Second"
-                        value: 230
+                        label: "Seconde"
+                        value: 234
+                        color: secondRect.color
                     }
                     PieSlice{
                         label: "Premiere"
-                        value: 123
+                        value: 33
+                        color: premiereRect.color
                     }
                     PieSlice{
-                        label: "terminale"
-                        value: 210
+                        label: "Terminare"
+                        value: 4
+                        color: terminalRect.color
                     }
                 }
             }
@@ -227,7 +288,7 @@ Item {
 
                         Text {
                             id: studentsNumberLabelSecond
-                            text: "450"
+                            text: homeController.distroByLevel.secondCount
                             color:  "white"
                             font.bold: true
                             font.pixelSize: 24
@@ -254,7 +315,7 @@ Item {
 
                         Text {
                             id: studentsNumberLabelPremiere
-                            text: "345"
+                            text: homeController.distroByLevel.premiereCount
                             color:  "white"
                             font.bold: true
                             font.pixelSize: 24
@@ -281,7 +342,7 @@ Item {
 
                         Text {
                             id: studentsNumberLabelterminal
-                            text: "200"
+                            text: homeController.distroByLevel.terminalCount
                             color:  "white"
                             font.bold: true
                             font.pixelSize: 24
@@ -297,8 +358,33 @@ Item {
             anchors.left: parent.left
             anchors.leftMargin:  10
             anchors.topMargin: 10
+            width: 250
+            height: 200
+            Rectangle{
+                id: monthName
+                width: parent.width
+                height: 30
+                color: "#fe5f55"
+                anchors.top: parent.top
+                anchors.topMargin: 3
+                anchors.horizontalCenter: parent.horizontalCenter
+                radius: 6
+                Text {
+                    anchors.verticalCenter: monthName.verticalCenter
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: getCurrentFullMonth()
+                    font.bold: true
+                    color: "white"
+                }
+            }
+
+
             GridLayout {
+                anchors.top: monthName.bottom
+                anchors.topMargin: 6
+                anchors.horizontalCenter: parent.horizontalCenter
                 columns: 2
+
                 DayOfWeekRow {
                     locale: grid.locale
                     Layout.column: 1
@@ -314,14 +400,28 @@ Item {
 
                 MonthGrid {
                     id: grid
-                    month: Calendar.August
-                    year: 2024
+                    month: getCurrentMonth()
+                    year: getCurrentYear()
                     locale: Qt.locale("fr_FR")
                     Layout.fillWidth: true
                     Layout.fillHeight: true
+                    delegate: Text {
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        //opacity: model.month === control.month ? 1 : 0
+                        text: model.day
+                        //font: control.font
+                        color: getCurrentDay() === model.day? "red" : "black"
+                        font.bold: getCurrentDay() === model.day? true : false
+
+                        required property var model
+                    }
+
                 }
             }
         }
 
     }
+
+
 }

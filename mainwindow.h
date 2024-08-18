@@ -23,9 +23,9 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
-    void mouseMoveEvent(QMouseEvent *e) override;
-    void mousePressEvent(QMouseEvent *e) override;
-    void mouseReleaseEvent(QMouseEvent *e) override;
+    //void mouseMoveEvent(QMouseEvent *e) override;
+    //void mousePressEvent(QMouseEvent *e) override;
+    //void mouseReleaseEvent(QMouseEvent *e) override;
 
 private slots:
 

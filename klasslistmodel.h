@@ -27,9 +27,11 @@ public:
 
     void loadData(const QString &schoolYear);
 
-    Klass subjectAt(int index);
+    Klass klassAt(int index);
 
     void addClass(const QString &className);
+
+    void removeKlass(const Klass &klass);
 
 private:
     std::vector<Klass> klasses;

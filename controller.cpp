@@ -13,6 +13,8 @@ Controller::Controller(QObject *parent) : QObject(parent)
     QCoreApplication::setApplicationName("Lycee");
     creator = new PdfCreator;
     creator->moveToThread(&pdfCreationThread);
+    pdfCreationThread.start();
+
 
     QObject::connect(creator, &PdfCreator::pdfCreated, this, &Controller::onTrancriptCreated);
 }
@@ -33,7 +35,7 @@ void Controller::init()
         return;
     }
 
-    schoolYears = DatabaseAccess::instance()->schoolYears();
+    getSchoolyears();
     checkDbError();
 
 }
@@ -97,9 +99,20 @@ void Controller::createTranscript(int classID, int trimester, const QString &fil
 {
     //QMetaObject::invokeMethod(creator, &PdfCreator::createTranscript, );
     if (trimester == 3)
-        creator->createFinalTranscipt(classID, filepath, getSchoolSettings(), schoolyear);
+    {
+        //creator->createFinalTranscipt(classID, filepath, getSchoolSettings(), schoolyear);
+        QMetaObject::invokeMethod(creator, "createFinalTranscipt", Qt::QueuedConnection, Q_ARG(int, classID), Q_ARG(QString, filepath), Q_ARG(QString, schoolyear));
+    }
     else
-        creator->createTranscript(classID, trimester, filepath, getSchoolSettings(), schoolyear);
+    {
+        //creator->createTranscript(classID, trimester, filepath, getSchoolSettings(), schoolyear);
+        QMetaObject::invokeMethod(creator, "createTranscript", Qt::QueuedConnection ,Q_ARG(int, classID), Q_ARG(int, trimester), Q_ARG(QString, filepath), Q_ARG(QString, schoolyear));
+    }
+}
+
+void Controller::getSchoolyears()
+{
+    schoolYears = DatabaseAccess::instance()->schoolYears();
 }
 
 void Controller::onTrancriptCreated()

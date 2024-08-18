@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QMap>
+
 #include <QLocale>
 
 class GradeMetaData;
@@ -11,6 +12,7 @@ class Subject;
 class StudentGrade;
 class TrimesterAVG;
 class FinalAVG;
+class DatabaseAccess;
 
 class PdfCreator : public QObject
 {
@@ -19,14 +21,14 @@ public:
     explicit PdfCreator(QObject *parent = nullptr);
 
 public slots:
-    void createTranscript(int classID, int trimester, QString out , QMap<QString, QString> schoolInfo_, const QString &schoolYear);
-    void createFinalTranscipt(int classID, QString out , QMap<QString, QString> schoolInfo_, const QString &schoolYear);
+    void createTranscript(int classID, int trimester, QString out , const QString &schoolYear);
+    void createFinalTranscipt(int classID, QString out , const QString &schoolYear);
 
 private:
     QLocale locale;
     QString filePath;
     QMap<QString, QString> schoolInfo;
-
+    DatabaseAccess *dbAccess = nullptr;
     GradeMetaData gradeFor(const Student &student, const Subject &subjct, std::vector<StudentGrade> &grades);
 
     Student studentFor(const TrimesterAVG &trimAVG, const std::vector<Student> &students);
@@ -155,7 +157,7 @@ private:
             </tr>
             <tr>
                 <td>Parent</td>
-                <td align="center" colspan='2'>%4 le<br>Proviseur,</td>
+                <td align="center" colspan='2'>%4 ,le %5<br>Proviseur,</td>
 
             </tr>
             <tr>
@@ -163,7 +165,7 @@ private:
             </tr>
             <tr>
                 <td> </td>
-                <td align="right" colspan='2' align='center'>%5</td>
+                <td align="right" colspan='2' align='center'>%6</td>
             </tr>
         </table>
     )";
@@ -180,14 +182,15 @@ private:
         </tr>
         <tr>
             <td>Parent</td>
-            <td align="right">%1 le<br>Proviseur,</td>
+            <td align="right">%1 ,le %2<br>Proviseur,</td>
 
         </tr>
         <tr>
             <td style="height: 40px;"></td>
         </tr>
         <tr>
-            <td colspan="3" align="right">%2</td>
+             <td> </td>
+            <td colspan="2" align="center">%3</td>
         </tr>
     </table>
     )";

@@ -19,6 +19,7 @@ KlassesPage::KlassesPage(QWidget *parent)
     QObject::connect(klassLisetView, &KlassListView::getSubjectListsFor, subjectTableView, &SubjectListTableView::onGetSubjectsFor);
     QObject::connect(schoolYearsView, &SchoolYearsView::currentSchoolYearChanged, klassLisetView, &KlassListView::loadKlasses);
     QObject::connect(subjectTableView, &SubjectListTableView::selectedSubject, this, &KlassesPage::onSubjectSelected);
+    QObject::connect(schoolYearsView, &SchoolYearsView::schoolYearDeleted, this, &KlassesPage::schoolYearRemoved);
 }
 
 KlassesPage::~KlassesPage()
@@ -75,6 +76,7 @@ void KlassesPage::on_schoolYearBtn_clicked()
     {
         schoolYearsView->model->addScoolYear(ui->schoolYearEdit->text());
         ui->schoolYearEdit->clear();
+        emit schoolYearAded();
     }
 }
 

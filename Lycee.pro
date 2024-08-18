@@ -13,6 +13,7 @@ SOURCES += \
     clipboardparser.cpp \
     controller.cpp \
     databaseaccess.cpp \
+    distrochartmodel.cpp \
     finalavg.cpp \
     finalavgtablemodel.cpp \
     finalavgview.cpp \
@@ -37,6 +38,7 @@ SOURCES += \
     studentgrade.cpp \
     studentlistmodel.cpp \
     studentpage.cpp \
+    studentpiemodel.cpp \
     studentstableview.cpp \
     subject.cpp \
     subjectlistmodel.cpp \
@@ -48,6 +50,7 @@ HEADERS += \
     clipboardparser.h \
     controller.h \
     databaseaccess.h \
+    distrochartmodel.h \
     finalavg.h \
     finalavgtablemodel.h \
     finalavgview.h \
@@ -71,6 +74,7 @@ HEADERS += \
     studentgrade.h \
     studentlistmodel.h \
     studentpage.h \
+    studentpiemodel.h \
     studentstableview.h \
     subject.h \
     subjectlistmodel.h \

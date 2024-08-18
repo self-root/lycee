@@ -27,9 +27,6 @@ void SubjectListTableView::contextMenuEvent(QContextMenuEvent *event)
 
 void SubjectListTableView::onGetSubjectsFor(const Klass &klass)
 {
-    //Call subjectList model to load subject lists
-    qDebug() << "Notifying model to get subjects for the class: " << klass.className();
-
     model->loadSubjectLists(klass.classId());
     Controller::instance()->checkDbError();
 }

@@ -17,6 +17,9 @@
         <file>images/paste.png</file>
         <file>images/compute1.png</file>
         <file>images/transcript.png</file>
+        <file>images/add_student.png</file>
+        <file>images/delete.png</file>
+        <file>images/edit-profile.png</file>
     </qresource>
     <qresource prefix="/data">
         <file>data/lyceedata</file>

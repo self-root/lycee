@@ -24,10 +24,14 @@ public:
 
     void hideEvent(QHideEvent *event) override;
 
+public slots:
+    void onSchoolYearsChanged();
+
 private:
     Ui::Home *ui;
     HomeController homeController;
     QQuickWidget *quickWidget = nullptr;
+
 };
 
 #endif // HOME_H

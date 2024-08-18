@@ -32,6 +32,7 @@ public:
     QMap<QString, QString> getSchoolSettings();
     void saveSchoolSettings(const QMap<QString, QString> &setting);
     void createTranscript(int classID, int trimester, const QString &filepath, const QString &schoolyear);
+    void getSchoolyears();
 
 private slots:
     void onTrancriptCreated();

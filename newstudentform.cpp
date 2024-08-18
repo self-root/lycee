@@ -6,7 +6,10 @@ NewStudentForm::NewStudentForm(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::NewStudentForm)
 {
+    setWindowFlag(Qt::Dialog);
+    setWindowModality(Qt::WindowModal);
     ui->setupUi(this);
+    setWindowTitle("Eleve info");
     ui->dateNaissEdit->setDisplayFormat("dd-MM-yyyy");
     ui->dateNaissEdit->setCalendarPopup(true);
 }
@@ -57,6 +60,9 @@ void NewStudentForm::on_saveBtn_clicked()
 
 void NewStudentForm::on_cancelBtn_clicked()
 {
+    ui->nameEdit->clear();
+    ui->matriculeEdit->clear();
+    ui->numberSpin->setValue(0);
     close();
 }
 

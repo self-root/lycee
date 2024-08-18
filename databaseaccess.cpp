@@ -1,4 +1,5 @@
 #include "databaseaccess.h"
+#include "qthread.h"
 #include <QSql>
 #include <QSqlDatabase>
 #include <QSqlError>
@@ -12,7 +13,28 @@ DatabaseAccess *DatabaseAccess::_instance = 0;
 DatabaseAccess::DatabaseAccess(QObject *parent)
     : QObject{parent}
 {
+    QString connectionName = QThread::currentThread()->objectName();
+    QString dbLocation = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
+    QDir dir;
+    dir.mkpath(dbLocation);
+    dbLocation = QDir::cleanPath(dbLocation + QDir::separator() + dbName);
+    qDebug() << "DB location: " << dbLocation;
+    if (!QSqlDatabase::contains(connectionName))
+        database = QSqlDatabase::addDatabase("QSQLITE", connectionName);
+    else
+        database = QSqlDatabase::database(connectionName);
+    database.setDatabaseName(dbLocation);
+    database.open();
 
+    if (!database.isOpen())
+    {
+        setErrorMessage("Error occuredd while opening database lyceedata\n" + database.lastError().text());
+        qDebug() << errorMessage;
+        return;
+
+    }
+
+    initDB(database);
 }
 
 void DatabaseAccess::setErrorMessage(const QString &error)
@@ -38,7 +60,7 @@ void DatabaseAccess::initDB(const QSqlDatabase &db)
             "f_schoolYear"	INTEGER,
             "klassName"	TEXT NOT NULL,
             PRIMARY KEY("id" AUTOINCREMENT),
-            FOREIGN KEY("f_schoolYear") REFERENCES "school_year"("id")
+            FOREIGN KEY("f_schoolYear") REFERENCES "school_year"("id") ON DELETE CASCADE
         )
     )";
 
@@ -54,7 +76,7 @@ void DatabaseAccess::initDB(const QSqlDatabase &db)
             "finalRank"	INTEGER,
             "finalAvg"	REAL,
             "studentNumber"	INTEGER,
-            FOREIGN KEY("f_klass") REFERENCES "klass"("id"),
+            FOREIGN KEY("f_klass") REFERENCES "klass"("id") ON DELETE CASCADE,
             PRIMARY KEY("id" AUTOINCREMENT)
         )
     )";
@@ -65,7 +87,7 @@ void DatabaseAccess::initDB(const QSqlDatabase &db)
             "subjectName"	TEXT,
             "subjectCoef"	INTEGER,
             "f_klass"	INTEGER,
-            FOREIGN KEY("f_klass") REFERENCES "klass"("id"),
+            FOREIGN KEY("f_klass") REFERENCES "klass"("id") ON DELETE CASCADE,
             PRIMARY KEY("id" AUTOINCREMENT)
         )
     )";
@@ -79,9 +101,9 @@ void DatabaseAccess::initDB(const QSqlDatabase &db)
             "f_student"	INTEGER,
             "f_trimester"	INTEGER,
             "skip"	INTEGER DEFAULT 0,
-            FOREIGN KEY("f_trimester") REFERENCES "trimester"("id"),
-            FOREIGN KEY("f_subject") REFERENCES "subject"("id"),
-            FOREIGN KEY("f_student") REFERENCES "student"("id"),
+            FOREIGN KEY("f_trimester") REFERENCES "trimester"("id") ON DELETE CASCADE,
+            FOREIGN KEY("f_subject") REFERENCES "subject"("id") ON DELETE CASCADE,
+            FOREIGN KEY("f_student") REFERENCES "student"("id") ON DELETE CASCADE,
             PRIMARY KEY("id" AUTOINCREMENT)
         )
     )";
@@ -93,7 +115,7 @@ void DatabaseAccess::initDB(const QSqlDatabase &db)
             "rank"	INTEGER,
             "f_student"	INTEGER,
             PRIMARY KEY("avg_id" AUTOINCREMENT),
-            FOREIGN KEY("f_student") REFERENCES "student"("id")
+            FOREIGN KEY("f_student") REFERENCES "student"("id") ON DELETE CASCADE
         )
     )";
 
@@ -114,8 +136,8 @@ void DatabaseAccess::initDB(const QSqlDatabase &db)
             "f_student"	INTEGER,
             "total"	REAL,
             PRIMARY KEY("id" AUTOINCREMENT),
-            FOREIGN KEY("f_student") REFERENCES "student"("id"),
-            FOREIGN KEY("f_trimester") REFERENCES "trimester"("id")
+            FOREIGN KEY("f_student") REFERENCES "student"("id") ON DELETE CASCADE,
+            FOREIGN KEY("f_trimester") REFERENCES "trimester"("id") ON DELETE CASCADE
         )
     )";
 
@@ -172,6 +194,7 @@ QString DatabaseAccess::getErrorMessage()
 
 void DatabaseAccess::openDB()
 {
+    QString connectionName = QThread::currentThread()->objectName();
     QString dbLocation = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
     QDir dir;
     dir.mkpath(dbLocation);
@@ -192,10 +215,31 @@ void DatabaseAccess::openDB()
     initDB(db);
 }
 
+QSqlDatabase DatabaseAccess::getDatabase()
+{
+    QString connectionName = QThread::currentThread()->objectName();
+    if (!QSqlDatabase::contains(connectionName))
+    {
+        QString dbLocation = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
+        QDir dir;
+        dir.mkpath(dbLocation);
+        dbLocation = QDir::cleanPath(dbLocation + QDir::separator() + dbName);
+        qDebug() << "DB location: " << dbLocation;
+        QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", connectionName);
+        if (!db.open())
+        {
+            setErrorMessage("Error occuredd while opening database lyceedata\n" + db.lastError().text());
+            qDebug() << errorMessage;
+        }
+    }
+
+   return QSqlDatabase::database(connectionName);
+}
+
 std::vector<Student> DatabaseAccess::loadStudentsByClass(int classID)
 {
     std::vector<Student> students;
-    QSqlQuery query;
+    QSqlQuery query(database);
     query.prepare("SELECT student.id, name, matricule, dateNaiss, situation, sexe, studentNumber FROM student INNER JOIN klass ON klass.id = student.f_klass WHERE klass.id = :classId");
     query.bindValue(":classId", classID);
 
@@ -303,11 +347,12 @@ void DatabaseAccess::deleteStudent(const Student &student, int classID)
 std::vector<Subject> DatabaseAccess::getSubjectByClass(int classID)
 {
     std::vector<Subject> subjects;
-    QSqlQuery query;
+    QSqlQuery query(database);
     query.prepare(R"(SELECT subject.id, subjectName, subjectCoef
                      FROM subject
                      INNER JOIN klass ON f_klass = klass.id
-                     WHERE f_klass = :klassID)");
+                     WHERE f_klass = :klassID
+                     ORDER BY subjectName ASC)");
     query.bindValue(":klassID", classID);
 
     if (query.exec())
@@ -431,6 +476,21 @@ void DatabaseAccess::addClass(const QString &className, int schoolYearID)
                             .arg(className).arg(query.lastError().text()));
 }
 
+void DatabaseAccess::removeKlass(const Klass &klass)
+{
+    QSqlQuery query(database);
+    query.prepare(R"(
+        DELETE FROM klass
+        WHERE klass.id = :klassID
+    )");
+
+    query.bindValue(":klassID", klass.classId());
+    if (!query.exec())
+    {
+        setErrorMessage(QString("Classe %1 delete error: %2").arg(klass.className()).arg(query.lastError().text()));
+    }
+}
+
 void DatabaseAccess::addSubject(Subject &subject, int classID)
 {
     QSqlQuery query;
@@ -460,7 +520,7 @@ void DatabaseAccess::studentGrades(int klassID,
                                    std::vector<Student> &students,
                                    std::vector<Subject> &subjects)
 {
-    QSqlQuery query;
+    QSqlQuery query(database);
     query.prepare(R"(
         SELECT student.id, name, subjectName, subject.id AS subjectID ,grade,
         grade.id AS grade_id, skip ,grade20, f_trimester, grade.f_student, klassName, subjectCoef
@@ -782,7 +842,7 @@ void DatabaseAccess::updateGrade20(int gradeID, double grade20)
 std::vector<FinalAVG> DatabaseAccess::getFinalAVGs(int classID)
 {
     std::vector<FinalAVG> avgs;
-    QSqlQuery query;
+    QSqlQuery query(database);
     query.prepare(R"(
         SELECT avg_id, avg, rank, f_student
         FROM final_avg
@@ -817,7 +877,7 @@ std::vector<TrimesterAVG> DatabaseAccess::getTrimesterAVGs(int trimester, int kl
 {
     std::vector<TrimesterAVG> avgs;
 
-    QSqlQuery query;
+    QSqlQuery query(database);
     query.prepare(R"(
         SELECT trimavg.id AS trimavg_id, avg, rank, f_trimester, f_student, total
         FROM trimavg
@@ -894,7 +954,7 @@ void DatabaseAccess::updateFinalAverage(const FinalAVG &final)
 Klass DatabaseAccess::classByID(int klassID)
 {
     Klass klass;
-    QSqlQuery query;
+    QSqlQuery query(database);
     query.prepare(R"(
         SELECT * FROM klass WHERE id = :id
     )");
@@ -976,4 +1036,29 @@ int DatabaseAccess::getSexeCount(const QString &schoolYear, const QString &sexe)
     return 0;
 }
 
+int DatabaseAccess::studentCountByClass(int klassID)
+{
+    int count = 0;
+    QSqlQuery query(database);
+    query.prepare(R"(
+        SELECT COUNT(student.id)
+        FROM student
+        INNER JOIN klass ON klass.id = student.f_klass
+        WHERE klass.id = :klassID
+    )");
 
+    query.bindValue(":klassID", klassID);
+    if (query.exec())
+    {
+        if (query.next())
+            count = query.value(0).toInt();
+    }
+
+    else
+    {
+        setErrorMessage(QString("Student count reading error %1").arg(query.lastError().text()));
+        qDebug() << errorMessage;
+    }
+
+    return count;
+}

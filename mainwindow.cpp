@@ -12,13 +12,15 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
+
     Controller::instance()->init();
     //this->setMouseTracking(true);
     QObject::connect(Controller::instance(), &Controller::databaseError, this, &MainWindow::onDatabaseError);
-    this->setWindowFlags(Qt::FramelessWindowHint);
+    //this->setWindowFlags(Qt::FramelessWindowHint);
     ui->setupUi(this);
+    setWindowTitle("Lycee");
     QPixmap img = QPixmap(":/icons/images/whale_letter2.png");
-    //img = img.scaledToHeight(260);
+    img = img.scaledToWidth(250);
     ui->imgLabel->setPixmap(img);
     this->setCentralWidget(ui->horizontalLayoutWidget);
     homePage = new Home;
@@ -34,6 +36,13 @@ MainWindow::MainWindow(QWidget *parent)
     stackedLayout->addWidget(settingsPage);
     ui->mainWidget->setLayout(stackedLayout);
     getScreenSize();
+
+    QObject::connect(klassPage, &KlassesPage::schoolYearAded, studentPage, &StudentPage::onSchoolYearAdded);
+    QObject::connect(klassPage, &KlassesPage::schoolYearAded, notePage, &NotesPage::loadSchoolYear);
+    QObject::connect(klassPage, &KlassesPage::schoolYearRemoved, studentPage, &StudentPage::onSchoolYearAdded);
+    QObject::connect(klassPage, &KlassesPage::schoolYearRemoved, notePage, &NotesPage::loadSchoolYear);
+    QObject::connect(klassPage, &KlassesPage::schoolYearRemoved, homePage, &Home::onSchoolYearsChanged);
+    QObject::connect(klassPage, &KlassesPage::schoolYearAded, homePage, &Home::onSchoolYearsChanged);
 }
 
 MainWindow::~MainWindow()
@@ -42,7 +51,7 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::mouseMoveEvent(QMouseEvent *e)
+/*void MainWindow::mouseMoveEvent(QMouseEvent *e)
 {
     //setCursor(Qt::SizeAllCursor);
     if (previousPos_y < 20)
@@ -64,7 +73,7 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *e)
 {
     if (e->position().x() < 20 && e->button() == Qt::LeftButton)
         setCursor(Qt::ArrowCursor);
-}
+}*/
 
 void MainWindow::on_exitButton_clicked()
 {

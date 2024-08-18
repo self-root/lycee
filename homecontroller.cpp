@@ -5,7 +5,8 @@ HomeController::HomeController(QObject *parent)
     : QObject{parent}
 {
     model = new SchoolYEarListModel;
-    init();
+    levelPieModel = new StudentPieModel;
+    //init();
 }
 
 QString HomeController::getSchoolName() const
@@ -30,14 +31,19 @@ void HomeController::init()
     QString schoolyear;
     if (!years.empty())
         schoolyear = years.at(0);
-    setNumberOfStudents(DatabaseAccess::instance()->getStudentCount(schoolyear));
-    setNumberOfMale(DatabaseAccess::instance()->getSexeCount(schoolyear, "Garçon"));
-    setNumberOfFemale(DatabaseAccess::instance()->getSexeCount(schoolyear, "Fille"));
+    setNumberOfStudents(DatabaseAccess::instance()->getStudentCount(currentSchoolYear));
+    setNumberOfMale(DatabaseAccess::instance()->getSexeCount(currentSchoolYear, "Garçon"));
+    setNumberOfFemale(DatabaseAccess::instance()->getSexeCount(currentSchoolYear, "Fille"));
 }
 
 SchoolYEarListModel *HomeController::yearsModel() const
 {
     return model;
+}
+
+StudentPieModel *HomeController::getDistroByLevel() const
+{
+    return levelPieModel;
 }
 
 int HomeController::numberOfMale() const
@@ -65,4 +71,26 @@ void HomeController::setNumberOfMale(int newNumberOfMale)
         return;
     mNumberOfMale = newNumberOfMale;
     emit numberOfMaleChanged();
+}
+
+QString HomeController::getCurrentSchoolYear() const
+{
+    return currentSchoolYear;
+}
+
+void HomeController::setCurrentSchoolYear(const QString &newCurrentSchoolYear)
+{
+    if (newCurrentSchoolYear == currentSchoolYear)
+        return;
+    currentSchoolYear = newCurrentSchoolYear;
+    setNumberOfStudents(DatabaseAccess::instance()->getStudentCount(currentSchoolYear));
+    setNumberOfMale(DatabaseAccess::instance()->getSexeCount(currentSchoolYear, "Garçon"));
+    setNumberOfFemale(DatabaseAccess::instance()->getSexeCount(currentSchoolYear, "Fille"));
+    emit currentSchoolYearChanged();
+
+}
+
+void HomeController::onSchoolYearsChanged()
+{
+    model->loadData();
 }
