@@ -6,7 +6,7 @@
 FinalAVGTableModel::FinalAVGTableModel(QObject *parent)
     : QAbstractTableModel(parent)
 {
-    headers << "Numero" << "Nom" << "Trimestre 1" << "Trimestre 2" << "Trimestre 3" << "Moyenne General" << "Rang";
+    headers << "Numéro et Prénom" << "Nom" << "Trimestre 1" << "Trimestre 2" << "Trimestre 3" << "Moyenne Générale" << "Rang";
 }
 
 QVariant FinalAVGTableModel::headerData(int section, Qt::Orientation orientation, int role) const

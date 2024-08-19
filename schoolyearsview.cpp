@@ -38,8 +38,8 @@ void SchoolYearsView::onDelete(bool triggered)
         QString selectedScholYear = current.data().toString();
         qDebug() << "Delete schoolyear: " << selectedScholYear;
         int ret = QMessageBox::warning(this,
-                             "Supprimer une annee scolaire",
-                             QString("voulez-vous vraiment supprimer l'annee scolair <b>%1</b>, et tous les classes et eleves dans cette annee?").arg(selectedScholYear),
+                             "Supprimer une année scolaire",
+                             QString("voulez-vous supprimer l'année scolaire <b>%1</b>?").arg(selectedScholYear),
                              QMessageBox::Ok | QMessageBox::Cancel);
 
         if (ret == QMessageBox::Ok)

@@ -1,11 +1,14 @@
 #include "homecontroller.h"
 #include "databaseaccess.h"
+#include "controller.h"
 
 HomeController::HomeController(QObject *parent)
     : QObject{parent}
 {
     model = new SchoolYEarListModel;
     levelPieModel = new StudentPieModel;
+    auto schoolInfo = Controller::instance()->getSchoolSettings();
+    schoolName = schoolInfo.value("school_name", "Lycee");
     //init();
 }
 

@@ -259,7 +259,7 @@ void GradeListModel::makeHeader()
     _header.clear();
     if (students.size() > 0)
     {
-        _header << "Nom";
+        _header << "Nom et Prénom";
         subjectsList(_header);
         _header << "Total" << "Moyenne" << "Rang";
     }

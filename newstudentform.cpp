@@ -9,7 +9,7 @@ NewStudentForm::NewStudentForm(QWidget *parent)
     setWindowFlag(Qt::Dialog);
     setWindowModality(Qt::WindowModal);
     ui->setupUi(this);
-    setWindowTitle("Eleve info");
+    setWindowTitle("Elève info");
     ui->dateNaissEdit->setDisplayFormat("dd-MM-yyyy");
     ui->dateNaissEdit->setCalendarPopup(true);
 }

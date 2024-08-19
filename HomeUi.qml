@@ -22,7 +22,7 @@ Item {
 
     function setSerieColors(){
         klassDistributionSeries.find("Seconde").color = secondRect.color
-        klassDistributionSeries.find("Premiere").color = premiereRect.color
+        klassDistributionSeries.find("Première").color = premiereRect.color
         klassDistributionSeries.find("Terminale").color = terminalRect.color
     }
 
@@ -242,12 +242,12 @@ Item {
                         color: secondRect.color
                     }
                     PieSlice{
-                        label: "Premiere"
+                        label: "Première"
                         value: 33
                         color: premiereRect.color
                     }
                     PieSlice{
-                        label: "Terminare"
+                        label: "Terminale"
                         value: 4
                         color: terminalRect.color
                     }
@@ -280,7 +280,7 @@ Item {
                         spacing: 6
                         Text {
                             id: topLabelSecond
-                            text: "Second"
+                            text: "Seconde"
                             color:  "white"
                             font.bold: true
                             font.pixelSize: 24
@@ -307,7 +307,7 @@ Item {
                         spacing: 6
                         Text {
                             id: topLabelpremiere
-                            text: "Premiere"
+                            text: "Première"
                             color:  "white"
                             font.bold: true
                             font.pixelSize: 24
@@ -334,7 +334,7 @@ Item {
                         spacing: 6
                         Text {
                             id: topLabelTerminal
-                            text: "Terminal"
+                            text: "Terminale"
                             color:  "white"
                             font.bold: true
                             font.pixelSize: 24

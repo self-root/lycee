@@ -57,8 +57,8 @@ void KlassListView::onDelete(bool triggered)
     Klass currentKlass = model->klassAt(current.row());
     QString klassName = currentKlass.className();
     int ret = QMessageBox::warning(this,
-                         "Supprimer une annee scolaire",
-                         QString("voulez-vous vraiment supprimer la classe <b>%1</b>, et tous les classes et eleves dans tte classe?").arg(klassName),
+                         "Supprimer une classe",
+                         QString("voulez-vous supprimer <b>%1</b> et tous les élèves qui lui sont associés?").arg(klassName),
                          QMessageBox::Ok | QMessageBox::Cancel);
 
     if (ret == QMessageBox::Ok)

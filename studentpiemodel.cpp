@@ -19,7 +19,7 @@ void StudentPieModel::loadData()
     int premiereCount = getCountFor("pre", klasses);
     int termCount = getCountFor("ter", klasses);
     series.push_back(PieSlice("Seconde", secondCount));
-    series.push_back(PieSlice("Premiere", premiereCount));
+    series.push_back(PieSlice("Première", premiereCount));
     series.push_back(PieSlice("Terminale", termCount));
     setSecondCount(secondCount);
     setPremiereCount(premiereCount);

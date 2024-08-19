@@ -43,7 +43,7 @@ public slots:
     void onSchoolYearsChanged();
 
 private:
-    QString schoolName = "Lycée de Sainte Marie";
+    QString schoolName;
     int mNumberOfStudents = 0;
     int mNumberOfMale = 0;
     int mNumberOfFemale = 0;

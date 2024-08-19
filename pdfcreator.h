@@ -52,16 +52,16 @@ private:
                 <tr>
                     <td>%2</td>
                     <td></td>
-                    <td align="right">Annee Scollaire: %3</td>
+                    <td align="right">Année scolaire: %3</td>
                 </tr>
                 <tr>
                     <td>%4</td>
                 </tr>
                 <tr>
-                    <td>Numero : %5</td>
+                    <td>Numéro : %5</td>
                 </tr>
                 <tr>
-                    <td colspan="3">Nom et Prenom: %6</td>
+                    <td colspan="3">Nom et Prénom: %6</td>
                 </tr>
                 <tr>
                     <td>Classe: %7</td>
@@ -75,11 +75,11 @@ private:
 
     QString tableHeader = R"(
         <tr>
-            <td style="border: 1px solid black">Matiere</td>
+            <td style="border: 1px solid black">Matière</td>
             <td style="border: 1px solid black">Note/20</td>
             <td style="border: 1px solid black">Coef</td>
             <td style="border: 1px solid black">Node def</td>
-            <td style="border: 1px solid black">Appreciation</td>
+            <td style="border: 1px solid black">Appréciation</td>
             <td style="border: 1px solid black">Emargement</td>
         </tr>
     )";
@@ -107,7 +107,7 @@ private:
         <tr>
             <td style="border: 1px solid black;">Moyenne</td>
             <td style="border: 1px solid black;">%4</td>
-            <td rowspan="2" colspan="4" align="center" style="border: 1px solid black;">Moyenne de la class: %5</td>
+            <td rowspan="2" colspan="4" align="center" style="border: 1px solid black;">Moyenne de la classe: %5</td>
         </tr>
         <tr>
             <td style="border: 1px solid black;">Rang</td>
@@ -127,7 +127,7 @@ private:
         <tr>
             <td style="border: 1px solid black;">Moyenne</td>
             <td style="border: 1px solid black;">%4</td>
-            <td colspan="4" align="center" style="border: 1px solid black;">Moyenne de la class: %5</td>
+            <td colspan="4" align="center" style="border: 1px solid black;">Moyenne de la classe: %5</td>
 
         </tr>
 

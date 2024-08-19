@@ -141,7 +141,7 @@
                 <item row="0" column="0">
                  <widget class="QLabel" name="label_3">
                   <property name="text">
-                   <string>Nom:</string>
+                   <string>Nom et prénom:</string>
                   </property>
                  </widget>
                 </item>
@@ -165,7 +165,7 @@
                 <item row="2" column="0">
                  <widget class="QLabel" name="label_5">
                   <property name="text">
-                   <string>Non Classee:</string>
+                   <string>Non Classée:</string>
                   </property>
                  </widget>
                 </item>

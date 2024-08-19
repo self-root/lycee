@@ -57,7 +57,7 @@ void NotesPage::on_trimestreCombo_activated(int index)
     {
         generalComputeAction->setEnabled(true);
         generalAVGView = new FinalAVGView;
-        tabWidget->addTab(generalAVGView, "Moyenne General");
+        tabWidget->addTab(generalAVGView, "Moyenne Générale");
         generalAVGView->model->loadData(Controller::instance()->klassByName(ui->classCombo->currentText()).classId());
     }
     else
@@ -122,8 +122,8 @@ void NotesPage::setupToolBar()
     toolbar->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
     pasteAction = new QAction(QIcon(":/icons/images/paste.png"), "Coller");
     computeAction = new QAction(QIcon(":/icons/images/calculator.png"), "Moyenne");
-    generalComputeAction = new QAction(QIcon(":/icons/images/compute1.png"), "Moyenne general");
-    createTranscriptAction = new QAction(QIcon(":/icons/images/transcript.png"), "Créer Bulettin");
+    generalComputeAction = new QAction(QIcon(":/icons/images/compute1.png"), "Moyenne générale");
+    createTranscriptAction = new QAction(QIcon(":/icons/images/transcript.png"), "Créer Bulletin");
     generalComputeAction->setEnabled(false);
     toolbar->addAction(pasteAction);
     toolbar->addAction(computeAction);

@@ -103,7 +103,7 @@ QPushButton:hover {background-color: #ffaa05; border-radius: 4px;margin-left: 8p
          <item>
           <widget class="QPushButton" name="etudiantsBtn">
            <property name="text">
-            <string>Etudiants</string>
+            <string>Elèves</string>
            </property>
            <property name="icon">
             <iconset resource="resources.qrc">

@@ -15,7 +15,7 @@ QVariant StudentListModel::headerData(int section, Qt::Orientation orientation, 
         case 0:{
             switch (role) {
             case Qt::DisplayRole:
-                return "Numero";
+                return "Numéro";
                 break;
             case Qt::ForegroundRole:
                 //return QColor(255, 255, 255);
@@ -27,7 +27,7 @@ QVariant StudentListModel::headerData(int section, Qt::Orientation orientation, 
         case 1:{
             switch (role) {
             case Qt::DisplayRole:
-                return "Nom et Prenom";
+                return "Nom et Prénom";
                 break;
             case Qt::ForegroundRole:
                 //return QColor(0, 0, 0);
