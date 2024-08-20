@@ -12,7 +12,7 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
-
+    this->setWindowIcon(QIcon(":/icons/images/add_student.png"));
     Controller::instance()->init();
     //this->setMouseTracking(true);
     QObject::connect(Controller::instance(), &Controller::databaseError, this, &MainWindow::onDatabaseError);

@@ -22,6 +22,7 @@
         <file>images/edit-profile.png</file>
         <file>images/topdf.png</file>
         <file>images/toexcel.png</file>
+        <file>images/blue-whale.png</file>
     </qresource>
     <qresource prefix="/data">
         <file>data/lyceedata</file>

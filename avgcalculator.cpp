@@ -113,11 +113,21 @@ TrimesterAVG AVGCalculator::trimAVGFor(int studentID, const std::vector<Trimeste
     return avg;
 }
 
-void AVGCalculator::sortFinalAVG(std::vector<FinalAVG> &finalAVG)
+void AVGCalculator::sortFinalAVG(std::vector<FinalAVG> &finalAVG, bool ask)
 {
-    std::sort(std::begin(finalAVG), std::end(finalAVG), [](const FinalAVG &a, const FinalAVG &b){
-        return a.avg() > b.avg();
-    });
+    if (ask)
+    {
+        std::sort(std::begin(finalAVG), std::end(finalAVG), [](const FinalAVG &a, const FinalAVG &b){
+            return a.avg() > b.avg();
+        });
+    }
+    else
+    {
+        std::sort(std::begin(finalAVG), std::end(finalAVG), [](const FinalAVG &a, const FinalAVG &b){
+            return a.avg() < b.avg();
+        });
+    }
+
 }
 
 void AVGCalculator::setFinalRanks( std::vector<FinalAVG> &finalAVG)

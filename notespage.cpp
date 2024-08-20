@@ -142,6 +142,27 @@ void NotesPage::onToPDF(Order order, FilterBy by)
 void NotesPage::onToExcel(Order order, FilterBy by)
 {
     qDebug() << "Create excel";
+    Klass klass = Controller::instance()->klassByName(ui->classCombo->currentText());
+    int trimester = ui->trimestreCombo->currentIndex() + 1;
+    QFileDialog fileDialog;
+    fileDialog.setAcceptMode(QFileDialog::AcceptSave);
+    fileDialog.setNameFilter("Excel (*.xlsx)");
+
+    if (fileDialog.exec())
+    {
+        auto files = fileDialog.selectedFiles();
+        if (files.length() > 0)
+        {
+
+            Controller::instance()->createTotalisationExcel(
+                klass.classId(),
+                trimester,
+                files.at(0),
+                order,
+                by
+            );
+        }
+    }
 }
 
 void NotesPage::clearGradeForm()

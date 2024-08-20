@@ -40,7 +40,7 @@ void PdfCreator::createTranscript(int classID, int trimester, QString out, const
 
     for (const TrimesterAVG &trimAvg : trimesterAVGs)
     {
-        Student student = studentFor(trimAvg, students);
+        Student student = Utils::studentFor(trimAvg, students);
         htmlText += R"(
             <tr>
         )";
@@ -64,7 +64,7 @@ void PdfCreator::createTranscript(int classID, int trimester, QString out, const
             double grade20_total = 0.0;
             for (const Subject &subject : subjects)
             {
-                GradeMetaData grade = gradeFor(student, subject, grades);
+                GradeMetaData grade = Utils::gradeFor(student, subject, grades);
                 if (grade.skip)
                     continue;
                 htmlText += subjectRows
@@ -156,10 +156,10 @@ void PdfCreator::createFinalTranscipt(int classID, QString out, const QString &s
 
     for (const FinalAVG &finalAvg : finals)
     {
-        Student student = studentForFinal(finalAvg, students);
-        TrimesterAVG trimAvg = trimAVGFor(student, trimesterAVGs_3);
-        TrimesterAVG trimAvg_1 = trimAVGFor(student, trimesterAVGs_1);
-        TrimesterAVG trimAvg_2 = trimAVGFor(student, trimesterAVGs_2);
+        Student student = Utils::studentForFinal(finalAvg, students);
+        TrimesterAVG trimAvg = Utils::trimAVGFor(student, trimesterAVGs_3);
+        TrimesterAVG trimAvg_1 = Utils::trimAVGFor(student, trimesterAVGs_1);
+        TrimesterAVG trimAvg_2 = Utils::trimAVGFor(student, trimesterAVGs_2);
 
         htmlText += R"(
             <tr>
@@ -184,7 +184,7 @@ void PdfCreator::createFinalTranscipt(int classID, QString out, const QString &s
             double grade20_total = 0.0;
             for (const Subject &subject : subjects)
             {
-                GradeMetaData grade = gradeFor(student, subject, grades);
+                GradeMetaData grade = Utils::gradeFor(student, subject, grades);
                 if (grade.skip)
                     continue;
                 htmlText += subjectRows
@@ -276,7 +276,7 @@ void PdfCreator::createTotalisationPDF(int classID,
 
     QStringList header;
 
-    makeTotalisationHeader(header, subjects);
+    Utils::makeTotalisationHeader(header, subjects);
 
     htmlText += "<tr>";
     for (const QString &h : header)
@@ -290,13 +290,13 @@ void PdfCreator::createTotalisationPDF(int classID,
         if (by == Order::Ask)
         {
             std::sort(std::begin(students), std::end(students), [](const Student &a, const Student &b){
-                return a.number() > b.number();
+                return a.number() < b.number();
             });
         }
         else
         {
             std::sort(std::begin(students), std::end(students), [](const Student &a, const Student &b){
-                return a.number() < b.number();
+                return a.number() > b.number();
             });
         }
 
@@ -311,14 +311,14 @@ void PdfCreator::createTotalisationPDF(int classID,
 
             for (const Subject &subject : subjects)
             {
-                GradeMetaData grade = gradeFor(student, subject, grades);
+                GradeMetaData grade = Utils::gradeFor(student, subject, grades);
                 if (grade.skip)
                     htmlText += QString("<td style='border: 1px solid black;'>NC</td>");
                 else
                     htmlText += QString("<td style='border: 1px solid black;'>%1</td>").arg(locale.toString(grade.grade, 'g', 4));
             }
 
-            TrimesterAVG trimAVG = trimAVGFor(student, trimesterAVGs);
+            TrimesterAVG trimAVG = Utils::trimAVGFor(student, trimesterAVGs);
             htmlText += QString(R"(
                 <td style='border: 1px solid black;'>%1</td>
                 <td style='border: 1px solid black;'>%2</td>
@@ -344,7 +344,7 @@ void PdfCreator::createTotalisationPDF(int classID,
 
         for (const TrimesterAVG &trimAVG : trimesterAVGs)
         {
-            Student student = studentFor(trimAVG, students);
+            Student student = Utils::studentFor(trimAVG, students);
             htmlText += "<tr>";
             htmlText += QString(R"(
                 <td style='border: 1px solid black;'>%1</td>
@@ -353,7 +353,7 @@ void PdfCreator::createTotalisationPDF(int classID,
 
             for (const Subject &subject : subjects)
             {
-                GradeMetaData grade = gradeFor(student, subject, grades);
+                GradeMetaData grade = Utils::gradeFor(student, subject, grades);
                 if (grade.skip)
                     htmlText += QString("<td style='border: 1px solid black;'>NC</td>");
                 else
@@ -387,78 +387,152 @@ void PdfCreator::createTotalisationPDF(int classID,
     emit totalisationPDFCreated(out);
 }
 
-void PdfCreator::makeTotalisationHeader(QStringList &header, const std::vector<Subject> &subjects)
+void PdfCreator::createFinalTotalisationPDF(int classID, QString out, const QString &schoolYear, Order order, FilterBy by)
 {
-    header << "Num" << "Nom";
-    for (const Subject &subject : subjects)
+    auto schoolInfo_ = Controller::instance()->getSchoolSettings();
+    std::vector<Student> students = dbAccess->loadStudentsByClass(classID);
+    std::vector<TrimesterAVG> trimesterAVGs_1 = dbAccess->getTrimesterAVGs(1, classID);
+    std::vector<TrimesterAVG> trimesterAVGs_2 = dbAccess->getTrimesterAVGs(2, classID);
+    std::vector<TrimesterAVG> trimesterAVGs_3 = dbAccess->getTrimesterAVGs(3, classID);
+    std::vector<Subject> subjects = dbAccess->getSubjectByClass(classID);
+    std::vector<StudentGrade> grades;
+    qDebug() << "Trimavgs size: " << trimesterAVGs_1.size() << "Students: " << students.size();
+    dbAccess->studentGrades(classID, 3, grades, students, subjects);
+    Klass klass = dbAccess->classByID(classID);
+
+    std::vector<FinalAVG> finals = dbAccess->getFinalAVGs(classID);
+    AVGCalculator::sortFinalAVG(finals);
+
+    QString htmlText;
+    htmlText += totalisation_header
+            .arg(3)
+            .arg(schoolInfo_.value("school_name"))
+            .arg(schoolYear)
+            .arg(schoolInfo_.value("code"))
+            .arg(klass.className());
+    htmlText += "<table style='border: 1px solid black; border-collapse: collapse; width: 100%;'>";
+
+    QStringList header;
+
+    Utils::makeFinalTotalisationHeader(header, subjects);
+
+    htmlText += "<tr>";
+    for (const QString &h : header)
     {
-        QString subjectName = subject.subjectName();
-        subjectName.truncate(3);
-        header << subjectName;
+        htmlText += QString("<td style='border: 1px solid black;'>%1</td>").arg(h);
     }
+    htmlText += "</tr>";
 
-    header << "Total" << "Moyene" << "Rang";
-}
-
-GradeMetaData PdfCreator::gradeFor(const Student &student, const Subject &subjct, std::vector<StudentGrade> &grades)
-{
-    GradeMetaData gradeMeta;
-    for (const StudentGrade &grade : grades)
+    if (by == FilterBy::Number)
     {
-        if (grade.mStudent.id() == student.id() && subjct.subjectId() == grade.mSubject.subjectId())
+        if (order == Order::Ask)
         {
-            gradeMeta.grade = grade.grade();
-            gradeMeta.grade20 = grade.grade20();
-            gradeMeta.coef = grade.coef();
-            gradeMeta.id = grade.getGradeID();
-            gradeMeta.skip = grade.skip();
-            break;
+            std::sort(std::begin(students), std::end(students), [](const Student &a, const Student &b){
+                return a.number() < b.number();
+            });
+        }
+        else
+        {
+            std::sort(std::begin(students), std::end(students), [](const Student &a, const Student &b){
+                return a.number() > b.number();
+            });
+        }
+
+
+        for (const Student &student : students)
+        {
+            htmlText += "<tr>";
+            htmlText += QString(R"(
+                <td style='border: 1px solid black;'>%1</td>
+                <td style='border: 1px solid black;'>%2</td>
+            )").arg(student.number()).arg(student.name());
+
+            for (const Subject &subject : subjects)
+            {
+                GradeMetaData grade = Utils::gradeFor(student, subject, grades);
+                if (grade.skip)
+                    htmlText += QString("<td style='border: 1px solid black;'>NC</td>");
+                else
+                    htmlText += QString("<td style='border: 1px solid black;'>%1</td>").arg(locale.toString(grade.grade, 'g', 4));
+            }
+            FinalAVG final = Utils::finalAVGFor(student, finals);
+            TrimesterAVG trimAVG = Utils::trimAVGFor(student, trimesterAVGs_3);
+            htmlText += QString(R"(
+                <td style='border: 1px solid black;'>%1</td>
+                <td style='border: 1px solid black;'>%2</td>
+                <td style='border: 1px solid black;'>%3</td>
+                <td style='border: 1px solid black;'>%4</td>
+            )").arg(locale.toString(trimAVG.total, 'g', 5))
+                .arg(locale.toString(trimAVG.avg, 'g', 4))
+                .arg(locale.toString(final.avg(), 'g', 4))
+                .arg(final.rank());
+
+            htmlText += "</tr>";
+        }
+
+
+    }
+    else // filter by rank/avg
+    {
+        if (order == Order::Ask)
+        {
+            AVGCalculator::sortFinalAVG(finals);
+        }
+
+        else
+        {
+            AVGCalculator::sortFinalAVG(finals, false);
+        }
+
+        for (const FinalAVG &final : finals)
+        {
+            Student student = Utils::studentForFinal(final, students);
+            htmlText += "<tr>";
+            htmlText += QString(R"(
+                <td style='border: 1px solid black;'>%1</td>
+                <td style='border: 1px solid black;'>%2</td>
+            )").arg(student.number()).arg(student.name());
+
+            for (const Subject &subject : subjects)
+            {
+                GradeMetaData grade = Utils::gradeFor(student, subject, grades);
+                if (grade.skip)
+                    htmlText += QString("<td style='border: 1px solid black;'>NC</td>");
+                else
+                    htmlText += QString("<td style='border: 1px solid black;'>%1</td>").arg(locale.toString(grade.grade, 'g', 4));
+            }
+            TrimesterAVG trimAVG = Utils::trimAVGFor(student, trimesterAVGs_3);
+            htmlText += QString(R"(
+                <td style='border: 1px solid black;'>%1</td>
+                <td style='border: 1px solid black;'>%2</td>
+                <td style='border: 1px solid black;'>%3</td>
+                <td style='border: 1px solid black;'>%4</td>
+            )").arg(locale.toString(trimAVG.total, 'g', 5))
+                .arg(locale.toString(trimAVG.avg, 'g', 4))
+                .arg(locale.toString(final.avg(), 'g', 4))
+                .arg(final.rank());
+
+            htmlText += "</tr>";
         }
     }
-    return gradeMeta;
-}
 
-Student PdfCreator::studentFor(const TrimesterAVG &trimAVG, const std::vector<Student> &students)
-{
-    Student student;
-    for (const Student &s : students)
-    {
-        if (trimAVG.studentid == s.id())
-        {
-            student = s;
-            break;
-        }
-    }
-    return student;
-}
+    htmlText += "</table>";
 
-Student PdfCreator::studentForFinal(const FinalAVG &final, const std::vector<Student> &students)
-{
-    Student student;
-    for (const Student &s : students)
-    {
-        if (s.id() == final.studentId())
-        {
-            student = s;
-            break;
-        }
-    }
+    QTextDocument doc;
+    doc.setHtml(htmlText);
+    qDebug() << htmlText;
 
-    return student;
-}
+    QPrinter printer(QPrinter::HighResolution);
+    printer.setPageMargins(QMarginsF(0,0,0,0), QPageLayout::Millimeter);
+    printer.setOutputFormat(QPrinter::PdfFormat);
+    printer.setPageSize(QPageSize(QPageSize::A4));
+    printer.setPageOrientation(QPageLayout::Landscape);
+    printer.setOutputFileName(out);
 
-TrimesterAVG PdfCreator::trimAVGFor(const Student &student, const std::vector<TrimesterAVG> &avgs)
-{
-    TrimesterAVG avg;
-    for (const TrimesterAVG &_avg : avgs)
-    {
-        if (student.id() == _avg.studentid)
-        {
-            avg = _avg;
-            break;
-        }
-    }
-    return avg;
+    doc.print(&printer);
+
+    emit finalTotalisationExcelCreated(out);
+
 }
 
 QString PdfCreator::appreciation(double grade20)

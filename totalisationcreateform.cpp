@@ -64,3 +64,20 @@ void TotalisationCreateForm::on_cancelBtn_clicked()
     close();
 }
 
+
+void TotalisationCreateForm::on_numberRadio_toggled(bool checked)
+{
+    if (checked)
+    {
+        ui->ascRadio->setChecked(true);
+        ui->ascRadio->setEnabled(false);
+        ui->descRadio->setEnabled(false);
+    }
+
+    else
+    {
+        ui->ascRadio->setEnabled(true);
+        ui->descRadio->setDisabled(false);
+    }
+}
+

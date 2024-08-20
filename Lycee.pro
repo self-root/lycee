@@ -30,6 +30,7 @@ SOURCES += \
     newstudentform.cpp \
     notespage.cpp \
     pdfcreator.cpp \
+    rwexcel.cpp \
     schoolyearlistmodel.cpp \
     schoolyearsmodel.cpp \
     schoolyearsview.cpp \
@@ -67,6 +68,7 @@ HEADERS += \
     newstudentform.h \
     notespage.h \
     pdfcreator.h \
+    rwexcel.h \
     schoolyearlistmodel.h \
     schoolyearsmodel.h \
     schoolyearsview.h \
@@ -93,6 +95,10 @@ FORMS += \
     settingspage.ui \
     studentpage.ui \
     totalisationcreateform.ui
+
+LIBS += -llibxlnt
+LIBS += -L$$PWD/lib
+INCLUDEPATH += $$PWD/xlnt
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

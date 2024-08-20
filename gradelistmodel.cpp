@@ -59,9 +59,9 @@ QVariant GradeListModel::data(const QModelIndex &index, int role) const
         else if (col > _header.size() - 4)
         {
             if (col == _header.size() - 3)
-                return locale.toString(avg.total, 'g', 5);
+                return avg.total;
             else if (col == _header.size() - 2)
-                return locale.toString(avg.avg, 'g', 4);
+                return avg.avg;
             else {
                 return (avg.rank > 0 ? avg.rank : QVariant());
             }
@@ -69,7 +69,7 @@ QVariant GradeListModel::data(const QModelIndex &index, int role) const
         else {
             double grade = gradeForSubject(currentStudent, subjects.at(col-1));
             if (grade != -1)
-                return locale.toString(grade, 'g', 4);
+                return grade;
         }
         break;
     }

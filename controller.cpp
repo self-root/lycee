@@ -1,6 +1,7 @@
 #include "controller.h"
 #include "databaseaccess.h"
 #include "pdfcreator.h"
+#include "rwexcel.h"
 #include <QDir>
 #include <QStandardPaths>
 #include <QSettings>
@@ -19,6 +20,8 @@ Controller::Controller(QObject *parent) : QObject(parent)
 
     QObject::connect(creator, &PdfCreator::pdfCreated, this, &Controller::onTrancriptCreated);
     QObject::connect(creator, &PdfCreator::totalisationPDFCreated,this, &Controller::onToTalisationPDFCreated);
+    QObject::connect(creator, &PdfCreator::finalTotalisationExcelCreated, this, &Controller::onFinalTotalisationPDFCreated);
+
 }
 
 Controller *Controller::instance()
@@ -131,7 +134,19 @@ void Controller::createTotalisationPDF(int classID,
     int filterByID = qRegisterMetaType<FilterBy>();
     if (trimester == 3)
     {
-
+        /*    void  createFinalTotalisationPDF(int classID,
+                                     QString out ,
+                                     const QString &schoolYear,
+                                     Order order,
+                                     FilterBy by);*/
+        QMetaObject::invokeMethod(creator,
+                                  "createFinalTotalisationPDF",
+                                  Qt::QueuedConnection,
+                                  Q_ARG(int, classID),
+                                  Q_ARG(QString, filepath),
+                                  Q_ARG(QString, schoolyear),
+                                  Q_ARG(Order, by),
+                                  Q_ARG(FilterBy, filter));
     }
 
     else
@@ -148,6 +163,30 @@ void Controller::createTotalisationPDF(int classID,
     }
 }
 
+void Controller::createTotalisationExcel(int classID,
+                                         int trimester,
+                                         const QString &filepath,
+                                         Order order,
+                                         FilterBy by)
+{
+    try
+    {
+        if (trimester == 3)
+        {
+            RWExcel::createFinalTotalisation(classID, filepath, order, by);
+        }
+        else
+        {
+            RWExcel::createTotalisation(classID, trimester, filepath, order, by);
+        }
+
+    }
+    catch (std::exception &e)
+    {
+        qDebug() << "Excel write error: " << e.what();
+    }
+}
+
 void Controller::getSchoolyears()
 {
     schoolYears = DatabaseAccess::instance()->schoolYears();
@@ -161,4 +200,9 @@ void Controller::onTrancriptCreated()
 void Controller::onToTalisationPDFCreated(const QString &filePath)
 {
     qDebug() << "Totalisation saved at: " << filePath;
+}
+
+void Controller::onFinalTotalisationPDFCreated(const QString &filepath)
+{
+    qDebug() << "Final totalisation PDF created at: " << filepath;
 }

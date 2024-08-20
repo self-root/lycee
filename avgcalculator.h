@@ -27,7 +27,7 @@ public:
                                     const std::vector<Student> &students);
 
     static TrimesterAVG trimAVGFor(int studentID, const std::vector<TrimesterAVG> &trimAVG);
-    static void sortFinalAVG(std::vector<FinalAVG> &finalAVG);
+    static void sortFinalAVG(std::vector<FinalAVG> &finalAVG, bool ask = true);
     static void setFinalRanks(std::vector<FinalAVG> &finalAVG);
 };
 

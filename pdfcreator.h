@@ -35,18 +35,19 @@ public slots:
                                const QString &schoolYear,
                                Order by,
                                FilterBy filter);
-    void makeTotalisationHeader(QStringList &header, const std::vector<Subject> &subjects);
+    void  createFinalTotalisationPDF(int classID,
+                                     QString out ,
+                                     const QString &schoolYear,
+                                     Order order,
+                                     FilterBy by);
 private:
     QLocale locale;
     QString filePath;
     QMap<QString, QString> schoolInfo;
     DatabaseAccess *dbAccess = nullptr;
-    GradeMetaData gradeFor(const Student &student, const Subject &subjct, std::vector<StudentGrade> &grades);
 
-    Student studentFor(const TrimesterAVG &trimAVG, const std::vector<Student> &students);
-    Student studentForFinal(const FinalAVG &final, const std::vector<Student> &students);
 
-    TrimesterAVG trimAVGFor(const Student &student, const std::vector<TrimesterAVG> &avgs);
+
 
     QString appreciation(double grade20);
 
@@ -210,14 +211,18 @@ private:
     QString totalisation_header = R"(
         <table style='width: 800%;'>
             <tr>
-                <td colspan='2' style='text-align: center;'>Totalisation de Note Trimestre %1</td>
+                <td colspan='4' style='text-align: center;'>Totalisation de Note Trimestre %1</td>
             </tr>
             <tr>
                 <td style='text-align: left;'>%2</td>
+                <td style='color: white;'>text<td>
+                <td style='color: white;'>text<td>
                 <td style='text-align: right;'>Année Scolaire: %3</td>
             </tr>
             <tr>
                 <td style='text-align: left;'>%4</td>
+                <td style='color: white;'>text<td>
+                <td style='color: white;'>text<td>
                 <td style='text-align: right;'>Classe: %5</td>
             </tr>
         </table>
@@ -225,6 +230,7 @@ private:
 signals:
     void pdfCreated();
     void totalisationPDFCreated(const QString &filePath);
+    void finalTotalisationExcelCreated(const QString &filePath);
 
 };
 

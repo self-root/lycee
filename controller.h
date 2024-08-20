@@ -37,12 +37,19 @@ public:
                                int trimester,
                                const QString &filepath,
                                const QString &schoolyear,
-                               Order by, FilterBy filter);
+                               Order by,
+                               FilterBy filter);
+    void createTotalisationExcel(int classID,
+                                 int trimester,
+                                 const QString &filepath,
+                                 Order order,
+                                 FilterBy by);
     void getSchoolyears();
 
 private slots:
     void onTrancriptCreated();
     void onToTalisationPDFCreated(const QString &filePath);
+    void onFinalTotalisationPDFCreated(const QString &filepath);
 
 signals:
     void databaseError(const QString &errorMessage);

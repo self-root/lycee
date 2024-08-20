@@ -24,6 +24,8 @@ private slots:
 
     void on_cancelBtn_clicked();
 
+    void on_numberRadio_toggled(bool checked);
+
 private:
     Ui::TotalisationCreateForm *ui;
     QButtonGroup *sortBtnGroup = nullptr;
