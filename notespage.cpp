@@ -18,6 +18,9 @@ NotesPage::NotesPage(QWidget *parent)
     loadSchoolYear();
 
     setupToolBar();
+    totalisationForm = new TotalisationCreateForm;
+    QObject::connect(totalisationForm, &TotalisationCreateForm::totalisationPdf, this, &NotesPage::onToPDF);
+    QObject::connect(totalisationForm, &TotalisationCreateForm::totalisationExcel, this, &NotesPage::onToExcel);
 
     QObject::connect(gradesView, &GradesTableView::studentSelected, this, &NotesPage::onStudentSelected);
 }
@@ -108,6 +111,39 @@ void NotesPage::loadSchoolYear()
         ui->schoolYearCombo->addItem(year);
 }
 
+void NotesPage::onToPDF(Order order, FilterBy by)
+{
+    qDebug() << "create PDF";
+    Klass klass = Controller::instance()->klassByName(ui->classCombo->currentText());
+    int trimester = ui->trimestreCombo->currentIndex() + 1;
+    QString schoolYear = ui->schoolYearCombo->currentText();
+    QFileDialog fileDialog;
+    fileDialog.setAcceptMode(QFileDialog::AcceptSave);
+    fileDialog.setNameFilter("PDF (*.pdf)");
+
+    if (fileDialog.exec())
+    {
+        auto files = fileDialog.selectedFiles();
+        if (files.length() > 0)
+        {
+
+            Controller::instance()->createTotalisationPDF(
+                klass.classId(),
+                trimester,
+                files.at(0),
+                schoolYear,
+                order,
+                by
+            );
+        }
+    }
+}
+
+void NotesPage::onToExcel(Order order, FilterBy by)
+{
+    qDebug() << "Create excel";
+}
+
 void NotesPage::clearGradeForm()
 {
     ui->gradeSpin->clear();
@@ -124,17 +160,23 @@ void NotesPage::setupToolBar()
     computeAction = new QAction(QIcon(":/icons/images/calculator.png"), "Moyenne");
     generalComputeAction = new QAction(QIcon(":/icons/images/compute1.png"), "Moyenne générale");
     createTranscriptAction = new QAction(QIcon(":/icons/images/transcript.png"), "Créer Bulletin");
+    gradesToPDFAction = new QAction(QIcon(":/icons/images/topdf.png"), "Totalisation PDF");
+    gradesToExcelAction = new QAction(QIcon(":/icons/images/toexcel.png"), "Totalisation Excel");
     generalComputeAction->setEnabled(false);
     toolbar->addAction(pasteAction);
     toolbar->addAction(computeAction);
     toolbar->addAction(generalComputeAction);
     toolbar->addAction(createTranscriptAction);
+    toolbar->addAction(gradesToPDFAction);
+    toolbar->addAction(gradesToExcelAction);
     ui->mainLayout->insertWidget(0, toolbar);
 
     QObject::connect(pasteAction, &QAction::triggered, this, &NotesPage::onPaste);
     QObject::connect(computeAction, &QAction::triggered, this, &NotesPage::onCompute);
     QObject::connect(generalComputeAction, &QAction::triggered, this, &NotesPage::onComputeFinalAVG);
     QObject::connect(createTranscriptAction, &QAction::triggered, this, &NotesPage::onCreateTranscript);
+    QObject::connect(gradesToPDFAction, &QAction::triggered, this, &NotesPage::onSaveGradesPDFAction);
+    QObject::connect(gradesToExcelAction, &QAction::triggered, this, &NotesPage::onSaveGradesExcelAction);
 }
 
 
@@ -208,12 +250,14 @@ void NotesPage::onCompute(bool _)
 
 void NotesPage::onComputeFinalAVG(bool _)
 {
+    Q_UNUSED(_)
     qDebug() << "Compute finalAVG";
     generalAVGView->model->computeFinalAVG();
 }
 
 void NotesPage::onCreateTranscript(bool _)
 {
+    Q_UNUSED(_)
     qDebug() << __FUNCTION__;
     //int currentTrimester = ui->trimestreCombo->currentIndex() + 1;
 
@@ -234,5 +278,17 @@ void NotesPage::onCreateTranscript(bool _)
             );
         }
     }
+}
+
+void NotesPage::onSaveGradesPDFAction(bool _)
+{
+    Q_UNUSED(_)
+    totalisationForm->open(Target::PDF);
+}
+
+void NotesPage::onSaveGradesExcelAction(bool _)
+{
+    Q_UNUSED(_)
+    totalisationForm->open(Target::Excel);
 }
 

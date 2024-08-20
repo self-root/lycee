@@ -20,6 +20,8 @@
         <file>images/add_student.png</file>
         <file>images/delete.png</file>
         <file>images/edit-profile.png</file>
+        <file>images/topdf.png</file>
+        <file>images/toexcel.png</file>
     </qresource>
     <qresource prefix="/data">
         <file>data/lyceedata</file>

@@ -6,24 +6,36 @@
 
 #include <QLocale>
 
-class GradeMetaData;
-class Student;
-class Subject;
-class StudentGrade;
-class TrimesterAVG;
-class FinalAVG;
-class DatabaseAccess;
+#include "utils.h"
+//#include "subject.h"
+
+#include "databaseaccess.h"
+#include "student.h"
+#include "trimesteravg.h"
+#include "studentgrade.h"
+#include "finalavg.h"
+
+#include "databaseaccess.h"
+
+#include "subject.h"
 
 class PdfCreator : public QObject
 {
     Q_OBJECT
 public:
+
     explicit PdfCreator(QObject *parent = nullptr);
 
 public slots:
     void createTranscript(int classID, int trimester, QString out , const QString &schoolYear);
     void createFinalTranscipt(int classID, QString out , const QString &schoolYear);
-
+    void createTotalisationPDF(int classID,
+                               int trimester,
+                               QString out,
+                               const QString &schoolYear,
+                               Order by,
+                               FilterBy filter);
+    void makeTotalisationHeader(QStringList &header, const std::vector<Subject> &subjects);
 private:
     QLocale locale;
     QString filePath;
@@ -194,8 +206,26 @@ private:
         </tr>
     </table>
     )";
+
+    QString totalisation_header = R"(
+        <table style='width: 800%;'>
+            <tr>
+                <td colspan='2' style='text-align: center;'>Totalisation de Note Trimestre %1</td>
+            </tr>
+            <tr>
+                <td style='text-align: left;'>%2</td>
+                <td style='text-align: right;'>Année Scolaire: %3</td>
+            </tr>
+            <tr>
+                <td style='text-align: left;'>%4</td>
+                <td style='text-align: right;'>Classe: %5</td>
+            </tr>
+        </table>
+    )";
 signals:
     void pdfCreated();
+    void totalisationPDFCreated(const QString &filePath);
+
 };
 
 #endif // PDFCREATOR_H

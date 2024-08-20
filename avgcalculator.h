@@ -18,7 +18,7 @@ public:
 
     static TrimesterAVG computeStudentAverage(const std::vector<GradeMetaData> &gradeMeta, int studentID, int trimester);
 
-    static void sortAVG(std::vector<TrimesterAVG> &trimAVGs);
+    static void sortAVG(std::vector<TrimesterAVG> &trimAVGs, bool ascending=true);
 
     static std::vector<FinalAVG> computeFinalAVG(
                                     const std::vector<TrimesterAVG> &trimAVG_1,

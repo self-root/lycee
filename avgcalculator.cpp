@@ -66,9 +66,12 @@ TrimesterAVG AVGCalculator::computeStudentAverage(const std::vector<GradeMetaDat
     return trimAVG;
 }
 
-void AVGCalculator::sortAVG(std::vector<TrimesterAVG> &trimAVGs)
+void AVGCalculator::sortAVG(std::vector<TrimesterAVG> &trimAVGs, bool ascending)
 {
-    std::sort(std::begin(trimAVGs), std::end(trimAVGs), [](const TrimesterAVG &a, const TrimesterAVG &b){return a.avg > b.avg;});
+    if (ascending)
+        std::sort(std::begin(trimAVGs), std::end(trimAVGs), [](const TrimesterAVG &a, const TrimesterAVG &b){return a.avg > b.avg;});
+    else
+        std::sort(std::begin(trimAVGs), std::end(trimAVGs), [](const TrimesterAVG &a, const TrimesterAVG &b){return a.avg < b.avg;});
 }
 
 std::vector<FinalAVG> AVGCalculator::computeFinalAVG(const std::vector<TrimesterAVG> &trimAVG_1,

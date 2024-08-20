@@ -8,6 +8,8 @@
 
 #include "gradestableview.h"
 #include "finalavgview.h"
+#include "utils.h"
+#include "totalisationcreateform.h"
 
 
 namespace Ui {
@@ -47,8 +49,14 @@ private slots:
 
     void onCreateTranscript(bool _);
 
+    void onSaveGradesPDFAction(bool _);
+
+    void onSaveGradesExcelAction(bool _);
+
 public slots:
     void loadSchoolYear();
+    void onToPDF(Order order, FilterBy by);
+    void onToExcel(Order order, FilterBy by);
 
 private:
     Ui::NotesPage *ui;
@@ -62,7 +70,10 @@ private:
     QAction *computeAction = nullptr;
     QAction *generalComputeAction = nullptr;
     QAction *createTranscriptAction = nullptr;
+    QAction *gradesToPDFAction = nullptr;
+    QAction *gradesToExcelAction = nullptr;
     GradeMetaData currentGrade;
+    TotalisationCreateForm *totalisationForm = nullptr;
 
 };
 

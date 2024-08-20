@@ -1,5 +1,6 @@
 #include "controller.h"
 #include "databaseaccess.h"
+#include "pdfcreator.h"
 #include <QDir>
 #include <QStandardPaths>
 #include <QSettings>
@@ -17,6 +18,7 @@ Controller::Controller(QObject *parent) : QObject(parent)
 
 
     QObject::connect(creator, &PdfCreator::pdfCreated, this, &Controller::onTrancriptCreated);
+    QObject::connect(creator, &PdfCreator::totalisationPDFCreated,this, &Controller::onToTalisationPDFCreated);
 }
 
 Controller *Controller::instance()
@@ -97,16 +99,52 @@ void Controller::saveSchoolSettings(const QMap<QString, QString> &setting)
 
 void Controller::createTranscript(int classID, int trimester, const QString &filepath, const QString &schoolyear)
 {
-    //QMetaObject::invokeMethod(creator, &PdfCreator::createTranscript, );
     if (trimester == 3)
     {
-        //creator->createFinalTranscipt(classID, filepath, getSchoolSettings(), schoolyear);
-        QMetaObject::invokeMethod(creator, "createFinalTranscipt", Qt::QueuedConnection, Q_ARG(int, classID), Q_ARG(QString, filepath), Q_ARG(QString, schoolyear));
+        QMetaObject::invokeMethod(creator,
+                                  "createFinalTranscipt",
+                                  Qt::QueuedConnection,
+                                  Q_ARG(int, classID),
+                                  Q_ARG(QString, filepath),
+                                  Q_ARG(QString, schoolyear));
     }
     else
     {
-        //creator->createTranscript(classID, trimester, filepath, getSchoolSettings(), schoolyear);
-        QMetaObject::invokeMethod(creator, "createTranscript", Qt::QueuedConnection ,Q_ARG(int, classID), Q_ARG(int, trimester), Q_ARG(QString, filepath), Q_ARG(QString, schoolyear));
+        QMetaObject::invokeMethod(creator,
+                                  "createTranscript",
+                                  Qt::QueuedConnection,
+                                  Q_ARG(int, classID),
+                                  Q_ARG(int, trimester),
+                                  Q_ARG(QString, filepath),
+                                  Q_ARG(QString, schoolyear));
+    }
+}
+
+void Controller::createTotalisationPDF(int classID,
+                                       int trimester,
+                                       const QString &filepath,
+                                       const QString &schoolyear,
+                                       Order by,
+                                       FilterBy filter)
+{
+    int orderID = qRegisterMetaType<Order>();
+    int filterByID = qRegisterMetaType<FilterBy>();
+    if (trimester == 3)
+    {
+
+    }
+
+    else
+    {
+        QMetaObject::invokeMethod(creator,
+                                  "createTotalisationPDF",
+                                  Qt::QueuedConnection,
+                                  Q_ARG(int, classID),
+                                  Q_ARG(int, trimester),
+                                  Q_ARG(QString, filepath),
+                                  Q_ARG(QString, schoolyear),
+                                  Q_ARG(Order, by),
+                                  Q_ARG(FilterBy, filter));
     }
 }
 
@@ -117,5 +155,10 @@ void Controller::getSchoolyears()
 
 void Controller::onTrancriptCreated()
 {
-    qDebug() << "Transcropt created";
+    qDebug() << "Transcript created";
+}
+
+void Controller::onToTalisationPDFCreated(const QString &filePath)
+{
+    qDebug() << "Totalisation saved at: " << filePath;
 }

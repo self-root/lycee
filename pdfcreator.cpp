@@ -7,14 +7,7 @@
 #include <QStandardPaths>
 #include <QDate>
 
-#include "databaseaccess.h"
-#include "student.h"
-#include "trimesteravg.h"
-#include "studentgrade.h"
-#include "subject.h"
-#include "finalavg.h"
 #include "controller.h"
-#include "databaseaccess.h"
 #include "avgcalculator.h"
 
 PdfCreator::PdfCreator(QObject *parent)
@@ -239,11 +232,6 @@ void PdfCreator::createFinalTranscipt(int classID, QString out, const QString &s
     QString htmlPath = writeHtml(htmlText);
     qDebug() << "HTML saved at: " << htmlPath;
 
-    //QString cmd = QString("wkhtmltopdf -O %1").arg(htmlPath);
-    //QDir dir(filePath);
-    //QString path = dir.absoluteFilePath(filePath);
-    //system(cmd.arg(fi));
-
     QTextDocument doc;
     doc.setHtml(htmlText);
     //doc.setDocumentMargin(0);
@@ -255,11 +243,161 @@ void PdfCreator::createFinalTranscipt(int classID, QString out, const QString &s
     printer.setPageOrientation(QPageLayout::Landscape);
     printer.setOutputFileName(out);
 
-    //QPainter painter(&printer);
-
     doc.print(&printer);
     //painter.end();
     emit pdfCreated();
+}
+
+void PdfCreator::createTotalisationPDF(int classID,
+                                       int trimester,
+                                       QString out,
+                                       const QString &schoolYear,
+                                       Order by,
+                                       FilterBy filter)
+{
+    QMap<QString, QString> schoolInfo_ = Controller::instance()->getSchoolSettings();
+    std::vector<Student> students = dbAccess->loadStudentsByClass(classID);
+    std::vector<TrimesterAVG> trimesterAVGs = dbAccess->getTrimesterAVGs(trimester, classID);
+    std::vector<Subject> subjects = dbAccess->getSubjectByClass(classID);
+    std::vector<StudentGrade> grades;
+    qDebug() << "Trimavgs size: " << trimesterAVGs.size() << "Students: " << students.size();
+
+    Klass klass = dbAccess->classByID(classID);
+    dbAccess->studentGrades(classID, trimester, grades, students, subjects);
+
+    QString htmlText;
+    htmlText += totalisation_header
+            .arg(trimester)
+            .arg(schoolInfo_.value("school_name"))
+            .arg(schoolYear)
+            .arg(schoolInfo_.value("code"))
+            .arg(klass.className());
+    htmlText += "<table style='border: 1px solid black; border-collapse: collapse; width: 100%;'>";
+
+    QStringList header;
+
+    makeTotalisationHeader(header, subjects);
+
+    htmlText += "<tr>";
+    for (const QString &h : header)
+    {
+        htmlText += QString("<td style='border: 1px solid black;'>%1</td>").arg(h);
+    }
+    htmlText += "</tr>";
+
+    if (filter == FilterBy::Number)
+    {
+        if (by == Order::Ask)
+        {
+            std::sort(std::begin(students), std::end(students), [](const Student &a, const Student &b){
+                return a.number() > b.number();
+            });
+        }
+        else
+        {
+            std::sort(std::begin(students), std::end(students), [](const Student &a, const Student &b){
+                return a.number() < b.number();
+            });
+        }
+
+
+        for (const Student &student : students)
+        {
+            htmlText += "<tr>";
+            htmlText += QString(R"(
+                <td style='border: 1px solid black;'>%1</td>
+                <td style='border: 1px solid black;'>%2</td>
+            )").arg(student.number()).arg(student.name());
+
+            for (const Subject &subject : subjects)
+            {
+                GradeMetaData grade = gradeFor(student, subject, grades);
+                if (grade.skip)
+                    htmlText += QString("<td style='border: 1px solid black;'>NC</td>");
+                else
+                    htmlText += QString("<td style='border: 1px solid black;'>%1</td>").arg(locale.toString(grade.grade, 'g', 4));
+            }
+
+            TrimesterAVG trimAVG = trimAVGFor(student, trimesterAVGs);
+            htmlText += QString(R"(
+                <td style='border: 1px solid black;'>%1</td>
+                <td style='border: 1px solid black;'>%2</td>
+                <td style='border: 1px solid black;'>%3</td>
+            )").arg(locale.toString(trimAVG.total, 'g', 5)).arg(locale.toString(trimAVG.avg, 'g', 4)).arg(trimAVG.rank);
+
+            htmlText += "</tr>";
+        }
+
+
+    }
+    else // filter by rank/avg
+    {
+        if (by == Order::Ask)
+        {
+            AVGCalculator::sortAVG(trimesterAVGs);
+        }
+
+        else
+        {
+            AVGCalculator::sortAVG(trimesterAVGs, false);
+        }
+
+        for (const TrimesterAVG &trimAVG : trimesterAVGs)
+        {
+            Student student = studentFor(trimAVG, students);
+            htmlText += "<tr>";
+            htmlText += QString(R"(
+                <td style='border: 1px solid black;'>%1</td>
+                <td style='border: 1px solid black;'>%2</td>
+            )").arg(student.number()).arg(student.name());
+
+            for (const Subject &subject : subjects)
+            {
+                GradeMetaData grade = gradeFor(student, subject, grades);
+                if (grade.skip)
+                    htmlText += QString("<td style='border: 1px solid black;'>NC</td>");
+                else
+                    htmlText += QString("<td style='border: 1px solid black;'>%1</td>").arg(locale.toString(grade.grade, 'g', 4));
+            }
+            htmlText += QString(R"(
+                <td style='border: 1px solid black;'>%1</td>
+                <td style='border: 1px solid black;'>%2</td>
+                <td style='border: 1px solid black;'>%3</td>
+            )").arg(locale.toString(trimAVG.total, 'g', 5)).arg(locale.toString(trimAVG.avg, 'g', 4)).arg(trimAVG.rank);
+
+            htmlText += "</tr>";
+        }
+    }
+
+    htmlText += "</table>";
+
+    QTextDocument doc;
+    doc.setHtml(htmlText);
+    qDebug() << htmlText;
+
+    QPrinter printer(QPrinter::HighResolution);
+    printer.setPageMargins(QMarginsF(0,0,0,0), QPageLayout::Millimeter);
+    printer.setOutputFormat(QPrinter::PdfFormat);
+    printer.setPageSize(QPageSize(QPageSize::A4));
+    printer.setPageOrientation(QPageLayout::Landscape);
+    printer.setOutputFileName(out);
+
+    doc.print(&printer);
+
+    emit totalisationPDFCreated(out);
+}
+
+void PdfCreator::makeTotalisationHeader(QStringList &header, const std::vector<Subject> &subjects)
+{
+    header << "Num" << "Nom";
+    for (const Subject &subject : subjects)
+    {
+        QString subjectName = subject.subjectName();
+        subjectName.truncate(3);
+        header << subjectName;
+    }
+
+    header << "Total" << "Moyene" << "Rang";
 }
 
 GradeMetaData PdfCreator::gradeFor(const Student &student, const Subject &subjct, std::vector<StudentGrade> &grades)

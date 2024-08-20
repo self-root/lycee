@@ -43,6 +43,7 @@ SOURCES += \
     subject.cpp \
     subjectlistmodel.cpp \
     subjectlisttableview.cpp \
+    totalisationcreateform.cpp \
     trimesteravg.cpp
 
 HEADERS += \
@@ -79,7 +80,9 @@ HEADERS += \
     subject.h \
     subjectlistmodel.h \
     subjectlisttableview.h \
-    trimesteravg.h
+    totalisationcreateform.h \
+    trimesteravg.h \
+    utils.h
 
 FORMS += \
     home.ui \
@@ -88,7 +91,8 @@ FORMS += \
     newstudentform.ui \
     notespage.ui \
     settingspage.ui \
-    studentpage.ui
+    studentpage.ui \
+    totalisationcreateform.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

@@ -6,7 +6,6 @@ import QtQuick.Layouts
 Item {
     id: root
     function loadSeriesData(){
-        console.log("Model count: " + homeController.distroByLevel.countData());
         homeController.distroByLevel.setSchoolYear(schoolYearCombo.currentText);
         homeController.distroByLevel.loadData();
         klassDistributionSeries.clear()
@@ -29,7 +28,6 @@ Item {
     function getCurrentDay(){
         var today = new Date();
         var day = today.getDate();
-        console.log("CurrentDay: " + day)
         return day;
     }
 
@@ -53,11 +51,9 @@ Item {
     }
 
     Component.onCompleted:{
-        console.log("Completed")
         homeController.currentSchoolYear = schoolYearCombo.currentText
         loadSeriesData()
         setSerieColors()
-        console.log("Current schoolYear: " + schoolYearCombo.currentText)
         getCurrentDay()
     }
 
