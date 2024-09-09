@@ -34,6 +34,10 @@ public:
 
     void addStudentsFromClipboard(const std::vector<Student> &students);
 
+    bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole) override;
+
+    Qt::ItemFlags flags(const QModelIndex &index) const override;
+
 private:
     std::vector<Student> students;
     int klassID = -1;
