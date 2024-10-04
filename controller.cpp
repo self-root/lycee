@@ -187,6 +187,17 @@ void Controller::createTotalisationExcel(int classID,
     }
 }
 
+void Controller::createFicheDeNote(int klassID, const QString &schoolYear, int trimester, const QString &filepath)
+{
+    QMetaObject::invokeMethod(creator,
+                              "createFicheDeNote",
+                              Qt::QueuedConnection,
+                              Q_ARG(int, klassID),
+                              Q_ARG(QString, filepath),
+                              Q_ARG(QString, schoolYear),
+                              Q_ARG(int, trimester));
+}
+
 void Controller::getSchoolyears()
 {
     schoolYears = DatabaseAccess::instance()->schoolYears();

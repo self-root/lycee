@@ -40,6 +40,11 @@ public slots:
                                      const QString &schoolYear,
                                      Order order,
                                      FilterBy by);
+
+    void createFicheDeNote(int classID,
+                           const QString &out,
+                           const QString &schoolYear,
+                           int trimester);
 private:
     QLocale locale;
     QString filePath;
@@ -231,6 +236,7 @@ signals:
     void pdfCreated();
     void totalisationPDFCreated(const QString &filePath);
     void finalTotalisationExcelCreated(const QString &filePath);
+    void ficheDeNoteCreated(const QString &filePath);
 
 };
 

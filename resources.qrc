@@ -23,6 +23,7 @@
         <file>images/topdf.png</file>
         <file>images/toexcel.png</file>
         <file>images/blue-whale.png</file>
+        <file>images/spreadsheet.png</file>
     </qresource>
     <qresource prefix="/data">
         <file>data/lyceedata</file>

@@ -264,7 +264,7 @@ void StudentListModel::addStudentsFromClipboard(const std::vector<Student> &stud
     }
 }
 
-bool StudentListModel::setData(const QModelIndex &index, const QVariant &value, int role)
+/*bool StudentListModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
 
 }
@@ -272,4 +272,4 @@ bool StudentListModel::setData(const QModelIndex &index, const QVariant &value, 
 Qt::ItemFlags StudentListModel::flags(const QModelIndex &index) const
 {
 
-}
+}*/

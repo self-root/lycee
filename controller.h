@@ -44,6 +44,7 @@ public:
                                  const QString &filepath,
                                  Order order,
                                  FilterBy by);
+    void createFicheDeNote(int klassID, const QString &schoolYear, int trimester, const QString &filepath);
     void getSchoolyears();
 
 private slots:

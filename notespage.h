@@ -53,6 +53,8 @@ private slots:
 
     void onSaveGradesExcelAction(bool _);
 
+    void onFicheDeNote(bool _);
+
 public slots:
     void loadSchoolYear();
     void onToPDF(Order order, FilterBy by);
@@ -72,6 +74,7 @@ private:
     QAction *createTranscriptAction = nullptr;
     QAction *gradesToPDFAction = nullptr;
     QAction *gradesToExcelAction = nullptr;
+    QAction *ficheDeNoteAction = nullptr;
     GradeMetaData currentGrade;
     TotalisationCreateForm *totalisationForm = nullptr;
 

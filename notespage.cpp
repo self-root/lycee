@@ -183,6 +183,7 @@ void NotesPage::setupToolBar()
     createTranscriptAction = new QAction(QIcon(":/icons/images/transcript.png"), "Créer Bulletin");
     gradesToPDFAction = new QAction(QIcon(":/icons/images/topdf.png"), "Totalisation PDF");
     gradesToExcelAction = new QAction(QIcon(":/icons/images/toexcel.png"), "Totalisation Excel");
+    ficheDeNoteAction = new QAction(QIcon(":/icons/images/spreadsheet.png"), "Fiche de notes");
     generalComputeAction->setEnabled(false);
     toolbar->addAction(pasteAction);
     toolbar->addAction(computeAction);
@@ -190,6 +191,7 @@ void NotesPage::setupToolBar()
     toolbar->addAction(createTranscriptAction);
     toolbar->addAction(gradesToPDFAction);
     toolbar->addAction(gradesToExcelAction);
+    toolbar->addAction(ficheDeNoteAction);
     ui->mainLayout->insertWidget(0, toolbar);
 
     QObject::connect(pasteAction, &QAction::triggered, this, &NotesPage::onPaste);
@@ -198,6 +200,7 @@ void NotesPage::setupToolBar()
     QObject::connect(createTranscriptAction, &QAction::triggered, this, &NotesPage::onCreateTranscript);
     QObject::connect(gradesToPDFAction, &QAction::triggered, this, &NotesPage::onSaveGradesPDFAction);
     QObject::connect(gradesToExcelAction, &QAction::triggered, this, &NotesPage::onSaveGradesExcelAction);
+    QObject::connect(ficheDeNoteAction, &QAction::triggered, this, &NotesPage::onFicheDeNote);
 }
 
 
@@ -311,5 +314,26 @@ void NotesPage::onSaveGradesExcelAction(bool _)
 {
     Q_UNUSED(_)
     totalisationForm->open(Target::Excel);
+}
+
+void NotesPage::onFicheDeNote(bool _)
+{
+    Q_UNUSED(_)
+
+    QFileDialog fileDialog;
+    fileDialog.setAcceptMode(QFileDialog::AcceptSave);
+    fileDialog.setNameFilter("PDF (*.pdf)");
+
+    if (fileDialog.exec())
+    {
+        auto files = fileDialog.selectedFiles();
+        if (files.length() > 0)
+        {
+            Controller::instance()->createFicheDeNote(gradesView->model->getCurrentClass(),
+                                                      ui->schoolYearCombo->currentText(),
+                                                      ui->trimestreCombo->currentIndex() + 1,
+                                                      files.at(0));
+        }
+    }
 }
 

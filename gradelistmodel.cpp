@@ -73,6 +73,12 @@ QVariant GradeListModel::data(const QModelIndex &index, int role) const
         }
         break;
     }
+    case Qt::EditRole:{
+        double grade = gradeForSubject(currentStudent, subjects.at(col-1));
+        if (grade != -1)
+            return grade;
+        break;
+    }
     default:
         break;
     }
@@ -243,6 +249,60 @@ void GradeListModel::updateGrade20()
     }
 
     Controller::instance()->checkDbError();
+}
+
+Qt::ItemFlags GradeListModel::flags(const QModelIndex &index) const
+{
+    if (!index.isValid())
+        return Qt::ItemIsEnabled;
+    if (index.column() <= 0 || index.column() >= _header.size() - 3)
+        return QAbstractTableModel::flags(index);
+
+    return QAbstractTableModel::flags(index) | Qt::ItemIsEditable;
+}
+
+bool GradeListModel::setData(const QModelIndex &index, const QVariant &value, int role)
+{
+    if (index.isValid() && role == Qt::EditRole)
+    {
+        bool converted = false;
+        double newGrade = 0.0;
+        newGrade = value.toDouble(&converted);
+        if (!converted)
+            return false;
+
+        QString subjecName = _header.at(index.column());
+        Student student = studentFromName(index.sibling(index.row(), 0).data().toString());
+        GradeMetaData grade = gradeFor(student.name(), subjecName);
+        qDebug() << "Data editing: " << student.name() << " - " << subjecName << " -> " << newGrade;
+        if (grade.id > 0)
+        {
+            if (newGrade != grade.grade)
+            {
+                grade.grade = newGrade;
+                updateGrade(grade);
+                return true;
+            }
+
+            return false;
+        }
+        else
+        {
+            grade.grade = newGrade;
+            Subject subject = subjectFromName(subjecName);
+            grade.coef = subject.subjectCoef();
+            grade.subjectName = subjecName;
+            addGrade(grade, student.name());
+            return true;
+        }
+        return true;
+    }
+    return false;
+}
+
+int GradeListModel::getCurrentClass()
+{
+    return currentClass;
 }
 
 void GradeListModel::addGrade(GradeMetaData &gradeMeta, const QString &studentName)

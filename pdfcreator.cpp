@@ -535,6 +535,87 @@ void PdfCreator::createFinalTotalisationPDF(int classID, QString out, const QStr
 
 }
 
+void PdfCreator::createFicheDeNote(int classID, const QString &out, const QString &schoolYear, int trimester)
+{
+    auto schoolInfo_ = Controller::instance()->getSchoolSettings();
+    std::vector<Student> students = dbAccess->loadStudentsByClass(classID);
+    Klass klass = dbAccess->classByID(classID);
+
+    QString html = "<table style='width: 100%; border-collapse: collapse;'>";
+
+    html += QString(R"(
+    <tr>
+        <td colspan="9">%1</td>
+    </tr>
+    <tr>
+        <td colspan="9">Code: %2</td>
+    </tr>
+    <tr>
+        <td colspan="9" align="center">Fiche de Notes du trimestre %3</td>
+    </tr>
+    <tr>
+        <td colspan="9">Nom du professeur: </td>
+    </tr>
+    <tr>
+        <td colspan="3">Matière: </td>
+        <td colspan="3">Classe: %4 </td>
+        <td colspan="3">Année Scholaire: %5</td>
+    </tr>
+    )").arg(schoolInfo_.value("school_name"))
+        .arg(schoolInfo_.value("code"))
+        .arg(trimester)
+        .arg(klass.className())
+        .arg(schoolYear);
+
+
+    html += R"(
+    <tr>
+        <td style='border: 1px solid black; padding: 1;'>Num</td>
+        <td style='border: 1px solid black; padding: 1;'>Nom et Prénom</td>
+        <td style='border: 1px solid black; padding: 1;'>JRN 1</td>
+        <td style='border: 1px solid black; padding: 1;'>JRN 2</td>
+        <td style='border: 1px solid black; padding: 1;'>JRN 3</td>
+        <td style='border: 1px solid black; padding: 1;'>Moyenne J</td>
+        <td style='border: 1px solid black; padding: 1;'>Composition</td>
+        <td style='border: 1px solid black; padding: 1;'>Coef</td>
+        <td style='border: 1px solid black; padding: 1;'>Note Def</td>
+    </tr>
+    )";
+
+    for (const Student &student : students)
+    {
+        html += QString(R"(
+        <tr>
+            <td style='border: 1px solid black; padding: 1;'>%1</td>
+            <td style='border: 1px solid black; padding: 1;'>%2</td>
+            <td style='border: 1px solid black;'></td>
+            <td style='border: 1px solid black;'></td>
+            <td style='border: 1px solid black;'></td>
+            <td style='border: 1px solid black;'></td>
+            <td style='border: 1px solid black;'></td>
+            <td style='border: 1px solid black;'></td>
+            <td style='border: 1px solid black;'></td>
+        </tr>
+        )").arg(student.number()).arg(student.name());
+    }
+
+    html += "</table>";
+
+    QTextDocument doc;
+    doc.setHtml(html);
+
+    QPrinter printer(QPrinter::HighResolution);
+    printer.setPageMargins(QMarginsF(0,0,0,0), QPageLayout::Millimeter);
+    printer.setOutputFormat(QPrinter::PdfFormat);
+    printer.setPageSize(QPageSize(QPageSize::A4));
+    printer.setPageOrientation(QPageLayout::Portrait);
+    printer.setOutputFileName(out);
+
+    doc.print(&printer);
+    emit ficheDeNoteCreated(out);
+    qDebug() << "Fiche de notes created...";
+}
+
 QString PdfCreator::appreciation(double grade20)
 {
     if (grade20>19.99)

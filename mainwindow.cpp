@@ -12,24 +12,27 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
+    ui->setupUi(this);
     this->setWindowIcon(QIcon(":/icons/images/add_student.png"));
     Controller::instance()->init();
     //this->setMouseTracking(true);
     QObject::connect(Controller::instance(), &Controller::databaseError, this, &MainWindow::onDatabaseError);
     //this->setWindowFlags(Qt::FramelessWindowHint);
-    ui->setupUi(this);
+
     setWindowTitle("Lycee");
     QPixmap img = QPixmap(":/icons/images/whale_letter2.png");
     img = img.scaledToWidth(250);
     ui->imgLabel->setPixmap(img);
     this->setCentralWidget(ui->horizontalLayoutWidget);
+    stackedLayout = new QStackedLayout;
     homePage = new Home;
+    stackedLayout->addWidget(homePage);
     studentPage = new StudentPage;
     klassPage = new KlassesPage;
     notePage = new NotesPage;
     settingsPage = new SettingsPage;
-    stackedLayout = new QStackedLayout;
-    stackedLayout->addWidget(homePage);
+
+
     stackedLayout->addWidget(studentPage);
     stackedLayout->addWidget(klassPage);
     stackedLayout->addWidget(notePage);
