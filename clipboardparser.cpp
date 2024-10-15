@@ -2,6 +2,7 @@
 #include <QStringList>
 #include <QDebug>
 #include <QDate>
+#include <QLocale>
 
 ClipBoardParser::ClipBoardParser() {}
 
@@ -9,6 +10,7 @@ std::vector<ClipboardGrade> ClipBoardParser::parseGradeClipboard(const QString &
 {
     std::vector<ClipboardGrade> grades;
     QStringList rows = data.split("\n");
+    QLocale locale;
 
     try {
         ClipboardGrade header;
@@ -32,8 +34,11 @@ std::vector<ClipboardGrade> ClipBoardParser::parseGradeClipboard(const QString &
             auto nameGradePair = row.split("\t");
             if (nameGradePair.length() == 2)
             {
+                bool ok = true;
                 grade.studentName = nameGradePair.at(0);
-                grade.grade = nameGradePair.at(1).toDouble();
+                grade.grade = nameGradePair.at(1).toDouble(&ok);
+                if (!ok)
+                    grade.grade = locale.toDouble(nameGradePair.at(1), &ok);
                 grades.push_back(grade);
             }
 
