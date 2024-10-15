@@ -36,7 +36,7 @@ void PdfCreator::createTranscript(int classID, int trimester, QString out, const
     QString htmlText;
     QString currentDate = locale.toString(QDate::currentDate(), "dd MMM yyyy");
 
-    htmlText += R"(<table width=100% height=100% style="border: 1px solid black; border-collapse: collapse; width: 100%;">)";
+    htmlText += R"(<table width=100% height=100% style="border-collapse: collapse; width: 100%;">)";
 
     for (const TrimesterAVG &trimAvg : trimesterAVGs)
     {
@@ -47,7 +47,21 @@ void PdfCreator::createTranscript(int classID, int trimester, QString out, const
 
         for (int i = 0; i < 2; i++)
         {
-            htmlText += "<td style='width: 100%;'>";
+            if (i == 0)
+                htmlText += "<td style='border-right: 1px solid black; width: 100%;'>";
+            else
+                htmlText += "<td style='border-left: 1px solid black; width: 100%;'>";
+            /*htmlText += transcriptHeader.arg(trimester)
+                            .arg(schoolInfo_.value("school_name"))
+                            .arg(schoolYear)
+                            .arg(schoolInfo_.value("code"))
+                            .arg(student.number())
+                            .arg(student.name())
+                            .arg(klass.className())
+                            .arg(student.matricule())
+                            .arg(student.situation());*/
+
+            htmlText += R"(<table style="border-collapse: collapse; width: 100%;">)";
             htmlText += transcriptHeader.arg(trimester)
                             .arg(schoolInfo_.value("school_name"))
                             .arg(schoolYear)
@@ -57,8 +71,6 @@ void PdfCreator::createTranscript(int classID, int trimester, QString out, const
                             .arg(klass.className())
                             .arg(student.matricule())
                             .arg(student.situation());
-
-            htmlText += R"(<table style="border: 1px solid black; border-collapse: collapse; width: 100%;">)";
             htmlText += tableHeader;
             int totalCoef = 0;
             double grade20_total = 0.0;
@@ -88,13 +100,13 @@ void PdfCreator::createTranscript(int classID, int trimester, QString out, const
                             .arg(students.size());
 
 
-
+            htmlText += footer
+                            .arg(schoolInfo_.value("place"))
+                            .arg(currentDate)
+                            .arg(schoolInfo_.value("principal"));
             htmlText += "</table>";
 
-            htmlText += footer
-                    .arg(schoolInfo_.value("place"))
-                    .arg(currentDate)
-                    .arg(schoolInfo_.value("principal"));
+
 
             htmlText += "</td>";
 
@@ -114,6 +126,7 @@ void PdfCreator::createTranscript(int classID, int trimester, QString out, const
     //system(cmd.arg(fi));
 
     QTextDocument doc;
+    setCSS(Controller::instance()->getTranscriptFormatSettings(), doc);
     doc.setHtml(htmlText);
     //doc.setDocumentMargin(0);
 
@@ -149,7 +162,7 @@ void PdfCreator::createFinalTranscipt(int classID, QString out, const QString &s
     double classAVG = classAverage(trimesterAVGs_3);
     QString htmlText;
 
-    htmlText += R"(<table width=100% height=100% style="border: 1px solid black; border-collapse: collapse; width: 100%;">)";
+    htmlText += R"(<table width=100% height=100% style="border-collapse: collapse; width: 100%;">)";
 
     std::vector<FinalAVG> finals = dbAccess->getFinalAVGs(classID);
     AVGCalculator::sortFinalAVG(finals);
@@ -167,7 +180,13 @@ void PdfCreator::createFinalTranscipt(int classID, QString out, const QString &s
 
         for (int i = 0; i < 2; i++)
         {
-            htmlText += "<td style='width: 100%;'>";
+            if (i == 0)
+                htmlText += "<td style='border-right: 1px solid black; width: 100%;'>";
+            else
+                htmlText += "<td style='border-left: 1px solid black; width: 100%;'>";
+
+
+            htmlText += R"(<table style="border-collapse: collapse; width: 100%;">)";
             htmlText += transcriptHeader.arg(3)
                             .arg(schoolInfo_.value("school_name"))
                             .arg(schoolYear)
@@ -177,8 +196,6 @@ void PdfCreator::createFinalTranscipt(int classID, QString out, const QString &s
                             .arg(klass.className())
                             .arg(student.matricule())
                             .arg(student.situation());
-
-            htmlText += R"(<table style="border: 1px solid black; border-collapse: collapse; width: 100%;">)";
             htmlText += tableHeader;
             int totalCoef = 0;
             double grade20_total = 0.0;
@@ -209,10 +226,6 @@ void PdfCreator::createFinalTranscipt(int classID, QString out, const QString &s
                             .arg(finalAvg.rank())
                             .arg(finals.size());
 
-
-
-            htmlText += "</table>";
-
             htmlText += final_footer
                             .arg(locale.toString(trimAvg_1.avg, 'g', 4))
                             .arg(locale.toString(trimAvg_2.avg, 'g', 4))
@@ -220,6 +233,10 @@ void PdfCreator::createFinalTranscipt(int classID, QString out, const QString &s
                             .arg(schoolInfo_.value("place"))
                             .arg(currentDate)
                             .arg(schoolInfo_.value("principal"));
+
+            htmlText += "</table>";
+
+
 
             htmlText += "</td>";
         }
@@ -233,6 +250,7 @@ void PdfCreator::createFinalTranscipt(int classID, QString out, const QString &s
     qDebug() << "HTML saved at: " << htmlPath;
 
     QTextDocument doc;
+    setCSS(Controller::instance()->getTranscriptFormatSettings(), doc);
     doc.setHtml(htmlText);
     //doc.setDocumentMargin(0);
 
@@ -372,6 +390,7 @@ void PdfCreator::createTotalisationPDF(int classID,
     htmlText += "</table>";
 
     QTextDocument doc;
+    setCSS(Controller::instance()->getTotalizationFormatSettings(), doc);
     doc.setHtml(htmlText);
     qDebug() << htmlText;
 
@@ -519,6 +538,7 @@ void PdfCreator::createFinalTotalisationPDF(int classID, QString out, const QStr
     htmlText += "</table>";
 
     QTextDocument doc;
+    setCSS(Controller::instance()->getTotalizationFormatSettings(), doc);
     doc.setHtml(htmlText);
     qDebug() << htmlText;
 
@@ -602,13 +622,14 @@ void PdfCreator::createFicheDeNote(int classID, const QString &out, const QStrin
     html += "</table>";
 
     QTextDocument doc;
+    setCSS(Controller::instance()->getTotalizationFormatSettings(), doc);
     doc.setHtml(html);
 
     QPrinter printer(QPrinter::HighResolution);
     printer.setPageMargins(QMarginsF(0,0,0,0), QPageLayout::Millimeter);
     printer.setOutputFormat(QPrinter::PdfFormat);
     printer.setPageSize(QPageSize(QPageSize::A4));
-    printer.setPageOrientation(QPageLayout::Portrait);
+    printer.setPageOrientation(QPageLayout::Landscape);
     printer.setOutputFileName(out);
 
     doc.print(&printer);
@@ -661,4 +682,17 @@ QString PdfCreator::writeHtml(const QString &html)
         file.write(html.toStdString().c_str());
     }
     return htmlPath;
+}
+
+void PdfCreator::setCSS(const QMap<QString, QString> &settings, QTextDocument &textDoc)
+{
+    textDoc.setDefaultStyleSheet(QString(R"(
+        *{
+            font-family: '%1';
+            font-size: %2pt;
+        }
+        td{
+            padding: %3px;
+        }
+    )").arg(settings.value("font")).arg(settings.value("fontsize")).arg(settings.value("paddings")));
 }

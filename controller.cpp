@@ -203,6 +203,50 @@ void Controller::getSchoolyears()
     schoolYears = DatabaseAccess::instance()->schoolYears();
 }
 
+QMap<QString, QString> Controller::getTranscriptFormatSettings()
+{
+    QSettings settings;
+    QMap<QString, QString> values;
+    settings.beginGroup("transcript_format");
+    values["font"] = settings.value("font", "Arial").toString();
+    values["fontsize"] = settings.value("fontsize", "10").toString();
+    values["paddings"] = settings.value("paddings", "1").toString();
+    settings.endGroup();
+    return values;
+}
+
+QMap<QString, QString> Controller::getTotalizationFormatSettings()
+{
+    QSettings settings;
+    QMap<QString, QString> values;
+    settings.beginGroup("totalization_format");
+    values["font"] = settings.value("font", "Arial").toString();
+    values["fontsize"] = settings.value("fontsize", "10").toString();
+    values["paddings"] = settings.value("paddings", "1").toString();
+    settings.endGroup();
+    return values;
+}
+
+void Controller::saveTranscriptFormatSettings(const QMap<QString, QString> &values)
+{
+    QSettings settings;
+    settings.beginGroup("transcript_format");
+    settings.setValue("font", values.value("font", "Arial"));
+    settings.setValue("fontsize", values.value("fontsize", "10"));
+    settings.setValue("paddings", values.value("paddings", "1"));
+    settings.endGroup();
+}
+
+void Controller::saveTotalizationFormatSettings(const QMap<QString, QString> &values)
+{
+    QSettings settings;
+    settings.beginGroup("totalization_format");
+    settings.setValue("font", values.value("font", "Arial"));
+    settings.setValue("fontsize", values.value("fontsize", "10"));
+    settings.setValue("paddings", values.value("paddings", "1"));
+    settings.endGroup();
+}
+
 void Controller::onTrancriptCreated()
 {
     qDebug() << "Transcript created";

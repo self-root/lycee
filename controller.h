@@ -46,7 +46,10 @@ public:
                                  FilterBy by);
     void createFicheDeNote(int klassID, const QString &schoolYear, int trimester, const QString &filepath);
     void getSchoolyears();
-
+    QMap<QString, QString> getTranscriptFormatSettings();
+    QMap<QString, QString> getTotalizationFormatSettings();
+    void saveTranscriptFormatSettings(const QMap<QString, QString> &values);
+    void saveTotalizationFormatSettings(const QMap<QString, QString> &values);
 private slots:
     void onTrancriptCreated();
     void onToTalisationPDFCreated(const QString &filePath);

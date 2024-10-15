@@ -25,8 +25,9 @@
         <file>images/blue-whale.png</file>
         <file>images/spreadsheet.png</file>
     </qresource>
-    <qresource prefix="/data">
-        <file>data/lyceedata</file>
+    <qresource prefix="/html">
+        <file>html/bulletin.html</file>
+        <file>html/fiche.html</file>
     </qresource>
     <qresource prefix="/">
         <file>HomeUi.qml</file>

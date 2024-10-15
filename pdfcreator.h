@@ -19,6 +19,7 @@
 
 #include "subject.h"
 
+class QTextDocument;
 class PdfCreator : public QObject
 {
     Q_OBJECT
@@ -51,16 +52,15 @@ private:
     QMap<QString, QString> schoolInfo;
     DatabaseAccess *dbAccess = nullptr;
 
-
-
-
     QString appreciation(double grade20);
 
     double classAverage(const std::vector<TrimesterAVG> &avgs);
 
     QString writeHtml(const QString &html);
 
-    QString transcriptHeader = R"(
+    void setCSS(const QMap<QString, QString> &settings, QTextDocument &textDoc);
+
+    /*QString transcriptHeader = R"(
             <table>
                 <tr>
 
@@ -89,6 +89,34 @@ private:
                     <td colspan="2">Situation: %9</td>
                 </tr>
             </table>
+    )";*/
+
+    QString transcriptHeader = R"(
+                <tr>
+
+                    <td colspan="6" align="center">Bulletin de Note Trimestre %1</td>
+
+                </tr>
+                <tr>
+                    <td colspan="3">%2</td>
+                    <td colspan="3" align="right">Année scolaire: %3</td>
+                </tr>
+                <tr>
+                    <td>%4</td>
+                </tr>
+                <tr>
+                    <td>Numéro : %5</td>
+                </tr>
+                <tr>
+                    <td colspan="6">Nom et Prénom: %6</td>
+                </tr>
+                <tr>
+                    <td>Classe: %7</td>
+                </tr>
+                <tr>
+                    <td colspan="3">Matricule: %8</td>
+                    <td colspan="3" align="right">Situation: %9</td>
+                </tr>
     )";
 
     QString tableHeader = R"(
@@ -157,60 +185,54 @@ private:
     )";
 
     QString final_footer = R"(
-        <table>
             <tr>
-                <td colspan='3'> Moyenne Trim 1: %1 Moyenne Trim 2: %2 Moyenne G : %3</td>
+                <td colspan='6' align="center"> Moyenne Trim 1: %1 Moyenne Trim 2: %2 Moyenne G : %3</td>
             </tr>
             <tr>
 
-                <td colspan='3'>OBSERVATION GENERALE OU DECISION DU CONSEIL DE CLASSE</td>
+                <td colspan='6' align="center">OBSERVATION GENERALE OU DECISION DU CONSEIL DE CLASSE</td>
 
             </tr>
             <tr>
-                <td colspan='3'>Admis en classe supérieure / Redouble sa classe</td>
+                <td colspan='6' align="center">Admis en classe supérieure / Redouble sa classe</td>
             </tr>
             <tr>
-                <td>Remise à sa famille</td>
-                <td colspan='2'>Motif: </td>
+                <td colspan="3">Remise à sa famille</td>
+                <td colspan='3' align="left">Motif: </td>
             </tr>
             <tr>
-                <td>Parent</td>
-                <td align="center" colspan='2'>%4 ,le %5<br>Proviseur,</td>
+                <td colspan="3" align="left">Parent</td>
+                <td colspan="3" align="right">%4 ,le %5<br>Proviseur,    </td>
 
             </tr>
             <tr>
                 <td style="height: 40px;"></td>
             </tr>
             <tr>
-                <td> </td>
-                <td align="right" colspan='2' align='center'>%6</td>
+                <td align="right" colspan='6' align='right'>%6</td>
             </tr>
-        </table>
     )";
 
     QString footer = R"(
-    <table>
         <tr>
 
-            <td colspan="3">OBSERVATION GENERALE OU DECISION DU CONSEIL DE CLASSE</td>
+            <td colspan="6" align="center">OBSERVATION GENERALE OU DECISION DU CONSEIL DE CLASSE</td>
 
         </tr>
         <tr>
-            <td colspan="3">Très-Bien / Bien / Assez-Bien / Moyen / Insuffisant /Très-Bien</td>
+            <td colspan="6" align="center">Très-Bien / Bien / Assez-Bien / Moyen / Insuffisant /Très-Bien</td>
         </tr>
         <tr>
-            <td>Parent</td>
-            <td align="right">%1 ,le %2<br>Proviseur,</td>
+            <td colspan="3">Parent</td>
+            <td colspan="3" align="right">%1 ,le %2<br>Proviseur,    </td>
 
         </tr>
         <tr>
             <td style="height: 40px;"></td>
         </tr>
         <tr>
-             <td> </td>
-            <td colspan="2" align="center">%3</td>
+            <td colspan="6" align="right">%3</td>
         </tr>
-    </table>
     )";
 
     QString totalisation_header = R"(
