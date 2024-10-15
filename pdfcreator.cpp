@@ -9,6 +9,7 @@
 
 #include "controller.h"
 #include "avgcalculator.h"
+#include "utils.h"
 
 PdfCreator::PdfCreator(QObject *parent)
     : QObject{parent}
@@ -81,9 +82,9 @@ void PdfCreator::createTranscript(int classID, int trimester, QString out, const
                     continue;
                 htmlText += subjectRows
                                 .arg(subject.subjectName())
-                                .arg(locale.toString(grade.grade20, 'f', 2))
+                                .arg(Utils::toString(grade.grade20))
                                 .arg(grade.coef)
-                                .arg(locale.toString(grade.grade, 'f', 2))
+                                .arg(Utils::toString(grade.grade))
                                 .arg(appreciation(grade.grade20));
 
                 totalCoef += grade.coef;
@@ -91,10 +92,10 @@ void PdfCreator::createTranscript(int classID, int trimester, QString out, const
             }
 
             htmlText += tootal_rank_part
-                            .arg(locale.toString(grade20_total, 'f', 2))
+                            .arg(Utils::toString(grade20_total))
                             .arg(totalCoef)
-                            .arg(locale.toString(trimAvg.total, 'f', 2))
-                            .arg(locale.toString(trimAvg.avg, 'f', 2))
+                            .arg(Utils::toString(trimAvg.total))
+                            .arg(Utils::toString(trimAvg.avg))
                             .arg(locale.toString(classAVG, 'f', 2))
                             .arg(trimAvg.rank)
                             .arg(students.size());
@@ -206,9 +207,9 @@ void PdfCreator::createFinalTranscipt(int classID, QString out, const QString &s
                     continue;
                 htmlText += subjectRows
                                 .arg(subject.subjectName())
-                                .arg(locale.toString(grade.grade20, 'f', 2))
+                                .arg(Utils::toString(grade.grade20))
                                 .arg(grade.coef)
-                                .arg(locale.toString(grade.grade, 'f', 2))
+                                .arg(Utils::toString(grade.grade))
                                 .arg(appreciation(grade.grade20));
 
                 totalCoef += grade.coef;
@@ -216,10 +217,10 @@ void PdfCreator::createFinalTranscipt(int classID, QString out, const QString &s
             }
 
             htmlText += final_total_rank_part
-                            .arg(locale.toString(grade20_total, 'f', 2))
+                            .arg(Utils::toString(grade20_total))
                             .arg(totalCoef)
-                            .arg(locale.toString(trimAvg.total, 'f', 2))
-                            .arg(locale.toString(trimAvg.avg, 'f', 2))
+                            .arg(Utils::toString(trimAvg.total))
+                            .arg(Utils::toString(trimAvg.avg))
                             .arg(locale.toString(classAVG, 'f', 2))
                             .arg(trimAvg.rank)
                             .arg(students.size())
@@ -333,7 +334,7 @@ void PdfCreator::createTotalisationPDF(int classID,
                 if (grade.skip)
                     htmlText += QString("<td style='border: 1px solid black;'>NC</td>");
                 else
-                    htmlText += QString("<td style='border: 1px solid black;'>%1</td>").arg(locale.toString(grade.grade, 'f', 2));
+                    htmlText += QString("<td style='border: 1px solid black;'>%1</td>").arg(Utils::toString(grade.grade));
             }
 
             TrimesterAVG trimAVG = Utils::trimAVGFor(student, trimesterAVGs);
@@ -341,7 +342,7 @@ void PdfCreator::createTotalisationPDF(int classID,
                 <td style='border: 1px solid black;'>%1</td>
                 <td style='border: 1px solid black;'>%2</td>
                 <td style='border: 1px solid black;'>%3</td>
-            )").arg(locale.toString(trimAVG.total, 'f', 2)).arg(locale.toString(trimAVG.avg, 'f', 2)).arg(trimAVG.rank);
+            )").arg(Utils::toString(trimAVG.total)).arg(Utils::toString(trimAVG.avg)).arg(trimAVG.rank);
 
             htmlText += "</tr>";
         }
@@ -375,13 +376,13 @@ void PdfCreator::createTotalisationPDF(int classID,
                 if (grade.skip)
                     htmlText += QString("<td style='border: 1px solid black;'>NC</td>");
                 else
-                    htmlText += QString("<td style='border: 1px solid black;'>%1</td>").arg(locale.toString(grade.grade, 'f', 2));
+                    htmlText += QString("<td style='border: 1px solid black;'>%1</td>").arg(Utils::toString(grade.grade));
             }
             htmlText += QString(R"(
                 <td style='border: 1px solid black;'>%1</td>
                 <td style='border: 1px solid black;'>%2</td>
                 <td style='border: 1px solid black;'>%3</td>
-            )").arg(locale.toString(trimAVG.total, 'f', 2)).arg(locale.toString(trimAVG.avg, 'f', 2)).arg(trimAVG.rank);
+            )").arg(Utils::toString(trimAVG.total)).arg(Utils::toString(trimAVG.avg)).arg(trimAVG.rank);
 
             htmlText += "</tr>";
         }
@@ -472,7 +473,7 @@ void PdfCreator::createFinalTotalisationPDF(int classID, QString out, const QStr
                 if (grade.skip)
                     htmlText += QString("<td style='border: 1px solid black;'>NC</td>");
                 else
-                    htmlText += QString("<td style='border: 1px solid black;'>%1</td>").arg(locale.toString(grade.grade, 'f', 2));
+                    htmlText += QString("<td style='border: 1px solid black;'>%1</td>").arg(Utils::toString(grade.grade));
             }
             FinalAVG final = Utils::finalAVGFor(student, finals);
             TrimesterAVG trimAVG = Utils::trimAVGFor(student, trimesterAVGs_3);
@@ -481,9 +482,9 @@ void PdfCreator::createFinalTotalisationPDF(int classID, QString out, const QStr
                 <td style='border: 1px solid black;'>%2</td>
                 <td style='border: 1px solid black;'>%3</td>
                 <td style='border: 1px solid black;'>%4</td>
-            )").arg(locale.toString(trimAVG.total, 'f', 2))
-                .arg(locale.toString(trimAVG.avg, 'f', 2))
-                .arg(locale.toString(final.avg(), 'f', 2))
+            )").arg(Utils::toString(trimAVG.total))
+                .arg(Utils::toString(trimAVG.avg))
+                .arg(Utils::toString(final.avg()))
                 .arg(final.rank());
 
             htmlText += "</tr>";
@@ -518,7 +519,7 @@ void PdfCreator::createFinalTotalisationPDF(int classID, QString out, const QStr
                 if (grade.skip)
                     htmlText += QString("<td style='border: 1px solid black;'>NC</td>");
                 else
-                    htmlText += QString("<td style='border: 1px solid black;'>%1</td>").arg(locale.toString(grade.grade, 'f', 2));
+                    htmlText += QString("<td style='border: 1px solid black;'>%1</td>").arg(Utils::toString(grade.grade));
             }
             TrimesterAVG trimAVG = Utils::trimAVGFor(student, trimesterAVGs_3);
             htmlText += QString(R"(
@@ -526,9 +527,9 @@ void PdfCreator::createFinalTotalisationPDF(int classID, QString out, const QStr
                 <td style='border: 1px solid black;'>%2</td>
                 <td style='border: 1px solid black;'>%3</td>
                 <td style='border: 1px solid black;'>%4</td>
-            )").arg(locale.toString(trimAVG.total, 'f', 2))
-                .arg(locale.toString(trimAVG.avg, 'f', 2))
-                .arg(locale.toString(final.avg(), 'f', 2))
+            )").arg(Utils::toString(trimAVG.total))
+                .arg(Utils::toString(trimAVG.avg))
+                .arg(Utils::toString(final.avg()))
                 .arg(final.rank());
 
             htmlText += "</tr>";

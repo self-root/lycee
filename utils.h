@@ -4,6 +4,7 @@
 #include <QMetaType>
 #include <QStringList>
 #include <QDebug>
+#include <QLocale>
 
 #include "subject.h"
 #include "student.h"
@@ -131,6 +132,18 @@ public:
         }
 
         return student;
+    }
+
+    static QString toString(double value)
+    {
+        QLocale locale;
+        QString formattedString = locale.toString(value, 'f', 2);
+        if (value == static_cast<int>(value))
+        {
+            formattedString = locale.toString(static_cast<int>(value));
+        }
+
+        return formattedString;
     }
 };
 

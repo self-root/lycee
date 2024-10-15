@@ -2,6 +2,8 @@
 #include "controller.h"
 #include "databaseaccess.h"
 #include "avgcalculator.h"
+#include "qlocale.h"
+#include "utils.h"
 
 #include <xlnt/xlnt.hpp>
 
@@ -61,11 +63,11 @@ void RWExcel::createTotalisation(int classID,
                     if (grade.skip)
                         sheet.cell(xlnt::cell_reference(xlnt::column_t(j+3), i+2)).value("NC");
                     else
-                        sheet.cell(xlnt::cell_reference(xlnt::column_t(j+3), i+2)).value(grade.grade);
+                        sheet.cell(xlnt::cell_reference(xlnt::column_t(j+3), i+2)).value(Utils::toString(grade.grade).toStdString());
                 }
                 TrimesterAVG trimAVG = Utils::trimAVGFor(students.at(i), trimesterAVGs);
-                sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 3), i+2)).value(trimAVG.total);
-                sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 4), i+2)).value(trimAVG.avg);
+                sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 3), i+2)).value(Utils::toString(trimAVG.total).toStdString());
+                sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 4), i+2)).value(Utils::toString(trimAVG.avg).toStdString());
                 sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 5), i+2)).value(trimAVG.rank);
 
             }
@@ -95,10 +97,10 @@ void RWExcel::createTotalisation(int classID,
                     if (grade.skip)
                        sheet.cell(xlnt::cell_reference(xlnt::column_t(j+3), i+2)).value("NC");
                     else
-                        sheet.cell(xlnt::cell_reference(xlnt::column_t(j+3), i+2)).value(grade.grade);
+                        sheet.cell(xlnt::cell_reference(xlnt::column_t(j+3), i+2)).value(Utils::toString(grade.grade).toStdString());
                 }
-                sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 3), i+2)).value(trimesterAVGs.at(i).total);
-                sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 4), i+2)).value(trimesterAVGs.at(i).avg);
+                sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 3), i+2)).value(Utils::toString(trimesterAVGs.at(i).total).toStdString());
+                sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 4), i+2)).value(Utils::toString(trimesterAVGs.at(i).avg).toStdString());
                 sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 5), i+2)).value(trimesterAVGs.at(i).rank);
             }
         }
@@ -153,13 +155,13 @@ void RWExcel::createFinalTotalisation(int classID, const QString out, Order orde
                     if (grade.skip)
                         sheet.cell(xlnt::cell_reference(xlnt::column_t(j+3), i+2)).value("NC");
                     else
-                        sheet.cell(xlnt::cell_reference(xlnt::column_t(j+3), i+2)).value(grade.grade);
+                        sheet.cell(xlnt::cell_reference(xlnt::column_t(j+3), i+2)).value(Utils::toString(grade.grade).toStdString());
                 }
                 FinalAVG final = Utils::finalAVGFor(students.at(i), finals);
                 TrimesterAVG trimAVG = Utils::trimAVGFor(students.at(i), trimesterAVGs);
-                sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 3), i+2)).value(trimAVG.total);
-                sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 4), i+2)).value(trimAVG.avg);
-                sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 5), i+2)).value(final.avg());
+                sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 3), i+2)).value(Utils::toString(trimAVG.total).toStdString());
+                sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 4), i+2)).value(Utils::toString(trimAVG.avg).toStdString());
+                sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 5), i+2)).value(Utils::toString(final.avg()).toStdString());
                 sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 6), i+2)).value(final.rank());
             }
 
@@ -188,11 +190,11 @@ void RWExcel::createFinalTotalisation(int classID, const QString out, Order orde
                     if (grade.skip)
                        sheet.cell(xlnt::cell_reference(xlnt::column_t(j+3), i+2)).value("NC");
                     else
-                        sheet.cell(xlnt::cell_reference(xlnt::column_t(j+3), i+2)).value(grade.grade);
+                        sheet.cell(xlnt::cell_reference(xlnt::column_t(j+3), i+2)).value(Utils::toString(grade.grade).toStdString());
                 }
-                sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 3), i+2)).value(trimesterAVGs.at(i).total);
-                sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 4), i+2)).value(trimesterAVGs.at(i).avg);
-                sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 5), i+2)).value(finals.at(i).avg());
+                sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 3), i+2)).value(Utils::toString(trimesterAVGs.at(i).total).toStdString());
+                sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 4), i+2)).value(Utils::toString(trimesterAVGs.at(i).avg).toStdString());
+                sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 5), i+2)).value(Utils::toString(finals.at(i).avg()).toStdString());
                 sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 6), i+2)).value(finals.at(i).rank());
             }
         }
