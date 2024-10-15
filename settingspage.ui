@@ -31,7 +31,7 @@
      <item>
       <widget class="QTabWidget" name="tabSettings">
        <property name="currentIndex">
-        <number>1</number>
+        <number>0</number>
        </property>
        <widget class="QWidget" name="etabInfoTab">
         <attribute name="title">
@@ -104,7 +104,7 @@
          <item>
           <widget class="QTabWidget" name="pdfTabs">
            <property name="currentIndex">
-            <number>1</number>
+            <number>0</number>
            </property>
            <widget class="QWidget" name="bulletinTab">
             <attribute name="title">
