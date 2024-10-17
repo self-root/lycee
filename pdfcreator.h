@@ -7,17 +7,12 @@
 #include <QLocale>
 
 #include "utils.h"
-//#include "subject.h"
 
 #include "databaseaccess.h"
-#include "student.h"
 #include "trimesteravg.h"
-#include "studentgrade.h"
-#include "finalavg.h"
 
 #include "databaseaccess.h"
 
-#include "subject.h"
 
 class QTextDocument;
 class PdfCreator : public QObject
@@ -60,36 +55,23 @@ private:
 
     void setCSS(const QMap<QString, QString> &settings, QTextDocument &textDoc);
 
-    /*QString transcriptHeader = R"(
-            <table>
-                <tr>
+    QString getCss(const QMap<QString, QString> &settings);
 
-                    <td colspan="3" align="center">Bulletin de Note Trimestre %1</td>
+    void write(const QString &htmlBody, const QString &path);
 
-                </tr>
-                <tr>
-                    <td>%2</td>
-                    <td></td>
-                    <td align="right">Année scolaire: %3</td>
-                </tr>
-                <tr>
-                    <td>%4</td>
-                </tr>
-                <tr>
-                    <td>Numéro : %5</td>
-                </tr>
-                <tr>
-                    <td colspan="3">Nom et Prénom: %6</td>
-                </tr>
-                <tr>
-                    <td>Classe: %7</td>
-                </tr>
-                <tr>
-                    <td>Matricule: %8</td>
-                    <td colspan="2">Situation: %9</td>
-                </tr>
-            </table>
-    )";*/
+    QString html_template = R"(
+        <html lang="fr">
+            <head>
+                <meta charset="UTF-8">
+                <style>
+                    %1
+                </style>
+            </head>
+            <body>
+                %2
+            </body>
+        </html>
+    )";
 
     QString transcriptHeader = R"(
                 <tr>
@@ -133,9 +115,9 @@ private:
     QString subjectRows = R"(
         <tr>
             <td style="border: 1px solid black">%1</td>
-            <td style="border: 1px solid black">%2</td>
-            <td style="border: 1px solid black">%3</td>
-            <td style="border: 1px solid black">%4</td>
+            <td class="notes" style="border: 1px solid black">%2</td>
+            <td class="notes" style="border: 1px solid black">%3</td>
+            <td class="notes" style="border: 1px solid black">%4</td>
             <td style="border: 1px solid black">%5</td>
             <td style="border: 1px solid black"></td>
         </tr>
@@ -144,29 +126,29 @@ private:
     QString tootal_rank_part = R"(
         <tr>
             <td style="border: 1px solid black;">Total</td>
-            <td style="border: 1px solid black;">%1</td>
-            <td style="border: 1px solid black;">%2</td>
-            <td style="border: 1px solid black;">%3</td>
+            <td  class="notes" style="border: 1px solid black;">%1</td>
+            <td class="notes" style="border: 1px solid black;">%2</td>
+            <td class="notes" style="border: 1px solid black;">%3</td>
             <td style="border: 1px solid black;"> </td>
             <td style="border: 1px solid black;"> </td>
         </tr>
         <tr>
             <td style="border: 1px solid black;">Moyenne</td>
-            <td style="border: 1px solid black;">%4</td>
+            <td class="notes" style="border: 1px solid black;">%4</td>
             <td rowspan="2" colspan="4" align="center" style="border: 1px solid black;">Moyenne de la classe: %5</td>
         </tr>
         <tr>
             <td style="border: 1px solid black;">Rang</td>
-            <td style="border: 1px solid black;">%6/%7</td>
+            <td class="notes" style="border: 1px solid black;">%6/%7</td>
         </tr>
     )";
 
     QString final_total_rank_part = R"(
         <tr>
             <td style="border: 1px solid black;">Total</td>
-            <td style="border: 1px solid black;">%1</td>
-            <td style="border: 1px solid black;">%2</td>
-            <td style="border: 1px solid black;">%3</td>
+            <td class="notes" style="border: 1px solid black;">%1</td>
+            <td class="notes" style="border: 1px solid black;">%2</td>
+            <td class="notes" style="border: 1px solid black;">%3</td>
             <td style="border: 1px solid black;"> </td>
             <td style="border: 1px solid black;"> </td>
         </tr>
@@ -201,15 +183,17 @@ private:
                 <td colspan='3' align="left">Motif: </td>
             </tr>
             <tr>
-                <td colspan="3" align="left">Parent</td>
-                <td colspan="3" align="right">%4 ,le %5<br>Proviseur,    </td>
+                <td colspan="2">Parent</td>
+                <td colspan="2"> </td>
+                <td colspan="2" align="left">%4 ,le %5<br>Proviseur,    </td>
 
             </tr>
             <tr>
-                <td style="height: 40px;"></td>
+                <td style="height: 50px;"></td>
             </tr>
             <tr>
-                <td align="right" colspan='6' align='right'>%6</td>
+                <td colspan="4"> </td>
+                <td colspan="2" align="left">%6</td>
             </tr>
     )";
 
@@ -223,32 +207,34 @@ private:
             <td colspan="6" align="center">Très-Bien / Bien / Assez-Bien / Moyen / Insuffisant /Très-Bien</td>
         </tr>
         <tr>
-            <td colspan="3">Parent</td>
-            <td colspan="3" align="right">%1 ,le %2<br>Proviseur,    </td>
+            <td colspan="2">Parent</td>
+            <td colspan="2"> </td>
+            <td colspan="2" align="left">%1 ,le %2<br>Proviseur,    </td>
 
         </tr>
         <tr>
-            <td style="height: 40px;"></td>
+            <td style="height: 50px;"></td>
         </tr>
         <tr>
-            <td colspan="6" align="right">%3</td>
+            <td colspan="4"> </td>
+            <td colspan="2" align="left">%3</td>
         </tr>
     )";
 
     QString totalisation_header = R"(
-        <table style='width: 800%;'>
+        <table style='width: 100%;'>
             <tr>
-                <td colspan='4' style='text-align: center;'>Totalisation de Note Trimestre %1</td>
+                <td style='color: white;'>text<td>
+                <td style='text-align: center;'>Totalisation de Note Trimestre %1</td>
+                <td style='color: white;'>text<td>
             </tr>
             <tr>
                 <td style='text-align: left;'>%2</td>
-                <td style='color: white;'>text<td>
                 <td style='color: white;'>text<td>
                 <td style='text-align: right;'>Année Scolaire: %3</td>
             </tr>
             <tr>
                 <td style='text-align: left;'>%4</td>
-                <td style='color: white;'>text<td>
                 <td style='color: white;'>text<td>
                 <td style='text-align: right;'>Classe: %5</td>
             </tr>

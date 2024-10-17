@@ -1,6 +1,7 @@
 #include "newstudentform.h"
 #include "ui_newstudentform.h"
 #include <QDate>
+#include <QCloseEvent>
 
 NewStudentForm::NewStudentForm(QWidget *parent)
     : QWidget(parent)
@@ -60,9 +61,6 @@ void NewStudentForm::on_saveBtn_clicked()
 
 void NewStudentForm::on_cancelBtn_clicked()
 {
-    ui->nameEdit->clear();
-    ui->matriculeEdit->clear();
-    ui->numberSpin->setValue(0);
     close();
 }
 
@@ -99,6 +97,14 @@ void NewStudentForm::display(Intent _intent)
     }
 
     this->show();
+}
+
+void NewStudentForm::closeEvent(QCloseEvent *event)
+{
+    ui->nameEdit->clear();
+    ui->matriculeEdit->clear();
+    ui->numberSpin->setValue(0);
+    event->accept();
 }
 
 NewStudentForm::Intent NewStudentForm::getIntent() const

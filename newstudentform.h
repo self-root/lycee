@@ -28,6 +28,8 @@ public:
 
     void display(Intent _intent);
 
+    void closeEvent(QCloseEvent *event) override;
+
 private slots:
     void on_saveBtn_clicked();
 

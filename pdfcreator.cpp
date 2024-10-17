@@ -6,6 +6,8 @@
 #include <QDir>
 #include <QStandardPaths>
 #include <QDate>
+#include <QTemporaryFile>
+#include <QProcess>
 
 #include "controller.h"
 #include "avgcalculator.h"
@@ -49,18 +51,9 @@ void PdfCreator::createTranscript(int classID, int trimester, QString out, const
         for (int i = 0; i < 2; i++)
         {
             if (i == 0)
-                htmlText += "<td style='border-right: 1px solid black; width: 100%;'>";
+                htmlText += "<td style='border-right: 1px solid black; padding: 4mm;'>";
             else
-                htmlText += "<td style='border-left: 1px solid black; width: 100%;'>";
-            /*htmlText += transcriptHeader.arg(trimester)
-                            .arg(schoolInfo_.value("school_name"))
-                            .arg(schoolYear)
-                            .arg(schoolInfo_.value("code"))
-                            .arg(student.number())
-                            .arg(student.name())
-                            .arg(klass.className())
-                            .arg(student.matricule())
-                            .arg(student.situation());*/
+                htmlText += "<td style='border-left: 1px solid black; padding: 4mm;'>";
 
             htmlText += R"(<table style="border-collapse: collapse; width: 100%;">)";
             htmlText += transcriptHeader.arg(trimester)
@@ -118,30 +111,10 @@ void PdfCreator::createTranscript(int classID, int trimester, QString out, const
 
     htmlText += "</table>";
 
-    QString htmlPath = writeHtml(htmlText);
-    qDebug() << "HTML saved at: " << htmlPath;
+    QString html_body = html_template.arg(getCss(Controller::instance()->getTranscriptFormatSettings()))
+                            .arg(htmlText);
 
-    //QString cmd = QString("wkhtmltopdf -O %1").arg(htmlPath);
-    //QDir dir(filePath);
-    //QString path = dir.absoluteFilePath(filePath);
-    //system(cmd.arg(fi));
-
-    QTextDocument doc;
-    setCSS(Controller::instance()->getTranscriptFormatSettings(), doc);
-    doc.setHtml(htmlText);
-    //doc.setDocumentMargin(0);
-
-    QPrinter printer(QPrinter::HighResolution);
-    printer.setPageMargins(QMarginsF(0,0,0,0), QPageLayout::Millimeter);
-    printer.setOutputFormat(QPrinter::PdfFormat);
-    printer.setPageSize(QPageSize(QPageSize::A4));
-    printer.setPageOrientation(QPageLayout::Landscape);
-    printer.setOutputFileName(out);
-
-    //QPainter painter(&printer);
-
-    doc.print(&printer);
-    //painter.end();
+    write(html_body, out);
     emit pdfCreated();
 }
 
@@ -182,9 +155,9 @@ void PdfCreator::createFinalTranscipt(int classID, QString out, const QString &s
         for (int i = 0; i < 2; i++)
         {
             if (i == 0)
-                htmlText += "<td style='border-right: 1px solid black; width: 100%;'>";
+                htmlText += "<td style='border-right: 1px solid black; padding: 4mm;'>";
             else
-                htmlText += "<td style='border-left: 1px solid black; width: 100%;'>";
+                htmlText += "<td style='border-left: 1px solid black; padding: 4mm;'>";
 
 
             htmlText += R"(<table style="border-collapse: collapse; width: 100%;">)";
@@ -247,23 +220,10 @@ void PdfCreator::createFinalTranscipt(int classID, QString out, const QString &s
 
     htmlText += "</table>";
 
-    QString htmlPath = writeHtml(htmlText);
-    qDebug() << "HTML saved at: " << htmlPath;
+    QString html_body = html_template.arg(getCss(Controller::instance()->getTranscriptFormatSettings()))
+                            .arg(htmlText);
 
-    QTextDocument doc;
-    setCSS(Controller::instance()->getTranscriptFormatSettings(), doc);
-    doc.setHtml(htmlText);
-    //doc.setDocumentMargin(0);
-
-    QPrinter printer(QPrinter::HighResolution);
-    printer.setPageMargins(QMarginsF(0,0,0,0), QPageLayout::Millimeter);
-    printer.setOutputFormat(QPrinter::PdfFormat);
-    printer.setPageSize(QPageSize(QPageSize::A4));
-    printer.setPageOrientation(QPageLayout::Landscape);
-    printer.setOutputFileName(out);
-
-    doc.print(&printer);
-    //painter.end();
+    write(html_body, out);
     emit pdfCreated();
 }
 
@@ -325,23 +285,23 @@ void PdfCreator::createTotalisationPDF(int classID,
             htmlText += "<tr>";
             htmlText += QString(R"(
                 <td style='border: 1px solid black;'>%1</td>
-                <td style='border: 1px solid black;'>%2</td>
+                <td class="student-name" style='border: 1px solid black;'>%2</td>
             )").arg(student.number()).arg(student.name());
 
             for (const Subject &subject : subjects)
             {
                 GradeMetaData grade = Utils::gradeFor(student, subject, grades);
                 if (grade.skip)
-                    htmlText += QString("<td style='border: 1px solid black;'>NC</td>");
+                    htmlText += QString("<td class='notes' style='border: 1px solid black;'>NC</td>");
                 else
-                    htmlText += QString("<td style='border: 1px solid black;'>%1</td>").arg(Utils::toString(grade.grade));
+                    htmlText += QString("<td class='notes' style='border: 1px solid black;'>%1</td>").arg(Utils::toString(grade.grade));
             }
 
             TrimesterAVG trimAVG = Utils::trimAVGFor(student, trimesterAVGs);
             htmlText += QString(R"(
-                <td style='border: 1px solid black;'>%1</td>
-                <td style='border: 1px solid black;'>%2</td>
-                <td style='border: 1px solid black;'>%3</td>
+                <td class="notes" style='border: 1px solid black;'>%1</td>
+                <td class="notes" style='border: 1px solid black;'>%2</td>
+                <td class="notes" style='border: 1px solid black;'>%3</td>
             )").arg(Utils::toString(trimAVG.total)).arg(Utils::toString(trimAVG.avg)).arg(trimAVG.rank);
 
             htmlText += "</tr>";
@@ -367,21 +327,21 @@ void PdfCreator::createTotalisationPDF(int classID,
             htmlText += "<tr>";
             htmlText += QString(R"(
                 <td style='border: 1px solid black;'>%1</td>
-                <td style='border: 1px solid black;'>%2</td>
+                <td class="student-name" style='border: 1px solid black;'>%2</td>
             )").arg(student.number()).arg(student.name());
 
             for (const Subject &subject : subjects)
             {
                 GradeMetaData grade = Utils::gradeFor(student, subject, grades);
                 if (grade.skip)
-                    htmlText += QString("<td style='border: 1px solid black;'>NC</td>");
+                    htmlText += QString("<td class='notes' style='border: 1px solid black;'>NC</td>");
                 else
-                    htmlText += QString("<td style='border: 1px solid black;'>%1</td>").arg(Utils::toString(grade.grade));
+                    htmlText += QString("<td class='notes' style='border: 1px solid black;'>%1</td>").arg(Utils::toString(grade.grade));
             }
             htmlText += QString(R"(
-                <td style='border: 1px solid black;'>%1</td>
-                <td style='border: 1px solid black;'>%2</td>
-                <td style='border: 1px solid black;'>%3</td>
+                <td class="notes" style='border: 1px solid black;'>%1</td>
+                <td class="notes" style='border: 1px solid black;'>%2</td>
+                <td class="notes" style='border: 1px solid black;'>%3</td>
             )").arg(Utils::toString(trimAVG.total)).arg(Utils::toString(trimAVG.avg)).arg(trimAVG.rank);
 
             htmlText += "</tr>";
@@ -390,19 +350,10 @@ void PdfCreator::createTotalisationPDF(int classID,
 
     htmlText += "</table>";
 
-    QTextDocument doc;
-    setCSS(Controller::instance()->getTotalizationFormatSettings(), doc);
-    doc.setHtml(htmlText);
-    qDebug() << htmlText;
+    QString html_body = html_template.arg(getCss(Controller::instance()->getTotalizationFormatSettings()))
+                            .arg(htmlText);
 
-    QPrinter printer(QPrinter::HighResolution);
-    printer.setPageMargins(QMarginsF(0,0,0,0), QPageLayout::Millimeter);
-    printer.setOutputFormat(QPrinter::PdfFormat);
-    printer.setPageSize(QPageSize(QPageSize::A4));
-    printer.setPageOrientation(QPageLayout::Landscape);
-    printer.setOutputFileName(out);
-
-    doc.print(&printer);
+    write(html_body, out);
 
     emit totalisationPDFCreated(out);
 }
@@ -464,24 +415,24 @@ void PdfCreator::createFinalTotalisationPDF(int classID, QString out, const QStr
             htmlText += "<tr>";
             htmlText += QString(R"(
                 <td style='border: 1px solid black;'>%1</td>
-                <td style='border: 1px solid black;'>%2</td>
+                <td class="student-name" style='border: 1px solid black;'>%2</td>
             )").arg(student.number()).arg(student.name());
 
             for (const Subject &subject : subjects)
             {
                 GradeMetaData grade = Utils::gradeFor(student, subject, grades);
                 if (grade.skip)
-                    htmlText += QString("<td style='border: 1px solid black;'>NC</td>");
+                    htmlText += QString("<td class='notes' style='border: 1px solid black;'>NC</td>");
                 else
-                    htmlText += QString("<td style='border: 1px solid black;'>%1</td>").arg(Utils::toString(grade.grade));
+                    htmlText += QString("<td class='notes' style='border: 1px solid black;'>%1</td>").arg(Utils::toString(grade.grade));
             }
             FinalAVG final = Utils::finalAVGFor(student, finals);
             TrimesterAVG trimAVG = Utils::trimAVGFor(student, trimesterAVGs_3);
             htmlText += QString(R"(
-                <td style='border: 1px solid black;'>%1</td>
-                <td style='border: 1px solid black;'>%2</td>
-                <td style='border: 1px solid black;'>%3</td>
-                <td style='border: 1px solid black;'>%4</td>
+                <td class="notes" style='border: 1px solid black;'>%1</td>
+                <td class="notes" style='border: 1px solid black;'>%2</td>
+                <td class="notes" style='border: 1px solid black;'>%3</td>
+                <td class="notes" style='border: 1px solid black;'>%4</td>
             )").arg(Utils::toString(trimAVG.total))
                 .arg(Utils::toString(trimAVG.avg))
                 .arg(Utils::toString(final.avg()))
@@ -510,23 +461,23 @@ void PdfCreator::createFinalTotalisationPDF(int classID, QString out, const QStr
             htmlText += "<tr>";
             htmlText += QString(R"(
                 <td style='border: 1px solid black;'>%1</td>
-                <td style='border: 1px solid black;'>%2</td>
+                <td class="student-name" style='border: 1px solid black;'>%2</td>
             )").arg(student.number()).arg(student.name());
 
             for (const Subject &subject : subjects)
             {
                 GradeMetaData grade = Utils::gradeFor(student, subject, grades);
                 if (grade.skip)
-                    htmlText += QString("<td style='border: 1px solid black;'>NC</td>");
+                    htmlText += QString("<td class='notes' style='border: 1px solid black;'>NC</td>");
                 else
-                    htmlText += QString("<td style='border: 1px solid black;'>%1</td>").arg(Utils::toString(grade.grade));
+                    htmlText += QString("<td class='notes' style='border: 1px solid black;'>%1</td>").arg(Utils::toString(grade.grade));
             }
             TrimesterAVG trimAVG = Utils::trimAVGFor(student, trimesterAVGs_3);
             htmlText += QString(R"(
-                <td style='border: 1px solid black;'>%1</td>
-                <td style='border: 1px solid black;'>%2</td>
-                <td style='border: 1px solid black;'>%3</td>
-                <td style='border: 1px solid black;'>%4</td>
+                <td class="notes" style='border: 1px solid black;'>%1</td>
+                <td class="notes" style='border: 1px solid black;'>%2</td>
+                <td class="notes" style='border: 1px solid black;'>%3</td>
+                <td class="notes" style='border: 1px solid black;'>%4</td>
             )").arg(Utils::toString(trimAVG.total))
                 .arg(Utils::toString(trimAVG.avg))
                 .arg(Utils::toString(final.avg()))
@@ -538,19 +489,10 @@ void PdfCreator::createFinalTotalisationPDF(int classID, QString out, const QStr
 
     htmlText += "</table>";
 
-    QTextDocument doc;
-    setCSS(Controller::instance()->getTotalizationFormatSettings(), doc);
-    doc.setHtml(htmlText);
-    qDebug() << htmlText;
+    QString html_body = html_template.arg(getCss(Controller::instance()->getTotalizationFormatSettings()))
+                            .arg(htmlText);
 
-    QPrinter printer(QPrinter::HighResolution);
-    printer.setPageMargins(QMarginsF(0,0,0,0), QPageLayout::Millimeter);
-    printer.setOutputFormat(QPrinter::PdfFormat);
-    printer.setPageSize(QPageSize(QPageSize::A4));
-    printer.setPageOrientation(QPageLayout::Landscape);
-    printer.setOutputFileName(out);
-
-    doc.print(&printer);
+    write(html_body, out);
 
     emit finalTotalisationExcelCreated(out);
 
@@ -591,15 +533,15 @@ void PdfCreator::createFicheDeNote(int classID, const QString &out, const QStrin
 
     html += R"(
     <tr>
-        <td style='border: 1px solid black; padding: 1;'>Num</td>
-        <td style='border: 1px solid black; padding: 1;'>Nom et Prénom</td>
-        <td style='border: 1px solid black; padding: 1;'>JRN 1</td>
-        <td style='border: 1px solid black; padding: 1;'>JRN 2</td>
-        <td style='border: 1px solid black; padding: 1;'>JRN 3</td>
-        <td style='border: 1px solid black; padding: 1;'>Moyenne J</td>
-        <td style='border: 1px solid black; padding: 1;'>Composition</td>
-        <td style='border: 1px solid black; padding: 1;'>Coef</td>
-        <td style='border: 1px solid black; padding: 1;'>Note Def</td>
+        <td style='border: 1px solid black;'>Num</td>
+        <td style='border: 1px solid black;'>Nom et Prénom</td>
+        <td style='border: 1px solid black;'>JRN 1</td>
+        <td style='border: 1px solid black;'>JRN 2</td>
+        <td style='border: 1px solid black;'>JRN 3</td>
+        <td style='border: 1px solid black;'>Moyenne J</td>
+        <td style='border: 1px solid black;'>Composition</td>
+        <td style='border: 1px solid black;'>Coef</td>
+        <td style='border: 1px solid black;'>Note Def</td>
     </tr>
     )";
 
@@ -607,8 +549,8 @@ void PdfCreator::createFicheDeNote(int classID, const QString &out, const QStrin
     {
         html += QString(R"(
         <tr>
-            <td style='border: 1px solid black; padding: 1;'>%1</td>
-            <td style='border: 1px solid black; padding: 1;'>%2</td>
+            <td style='border: 1px solid black;'>%1</td>
+            <td class="student-name" style='border: 1px solid black;'>%2</td>
             <td style='border: 1px solid black;'></td>
             <td style='border: 1px solid black;'></td>
             <td style='border: 1px solid black;'></td>
@@ -622,18 +564,12 @@ void PdfCreator::createFicheDeNote(int classID, const QString &out, const QStrin
 
     html += "</table>";
 
-    QTextDocument doc;
-    setCSS(Controller::instance()->getTotalizationFormatSettings(), doc);
-    doc.setHtml(html);
+    QString html_body = html_template.arg(getCss(Controller::instance()->getTotalizationFormatSettings()))
+                            .arg(html);
 
-    QPrinter printer(QPrinter::HighResolution);
-    printer.setPageMargins(QMarginsF(0,0,0,0), QPageLayout::Millimeter);
-    printer.setOutputFormat(QPrinter::PdfFormat);
-    printer.setPageSize(QPageSize(QPageSize::A4));
-    printer.setPageOrientation(QPageLayout::Landscape);
-    printer.setOutputFileName(out);
 
-    doc.print(&printer);
+    write(html_body, out);
+
     emit ficheDeNoteCreated(out);
     qDebug() << "Fiche de notes created...";
 }
@@ -696,4 +632,69 @@ void PdfCreator::setCSS(const QMap<QString, QString> &settings, QTextDocument &t
             padding: %3px;
         }
     )").arg(settings.value("font")).arg(settings.value("fontsize")).arg(settings.value("paddings")));
+}
+
+QString PdfCreator::getCss(const QMap<QString, QString> &settings)
+{
+    QString css = QString(R"(
+        *{
+            font-family: '%1';
+            font-size: %2pt;
+        }
+        td{
+            padding: %3px;
+        }
+        .notes{
+            text-align: center;
+        }
+        .student-name{
+            max-width: 400px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    )").arg(settings.value("font")).arg(settings.value("fontsize")).arg(settings.value("paddings"));
+
+    return css;
+}
+
+void PdfCreator::write(const QString &htmlBody, const QString &path)
+{
+    QString temp_html_path = QDir::cleanPath(QDir::tempPath() + QDir::separator() + "XXXXXX.html");
+
+    qDebug() << "Temporary file template: " << temp_html_path;
+
+    QTemporaryFile html_temp(temp_html_path);
+
+    if (html_temp.open())
+    {
+        qDebug() << "Temporary file name: " << html_temp.fileName();
+        html_temp.write(htmlBody.toStdString().c_str());
+        QProcess process;
+        QString program = "wkhtmltopdf.exe";
+        QStringList arguments;
+        arguments << "--orientation" << "Landscape";
+        arguments << "--margin-top" << "4mm";
+        arguments << "--margin-right" << "4mm";
+        arguments << "--margin-bottom" << "4mm";
+        arguments << "--margin-left" << "4mm";
+        arguments << html_temp.fileName() << path;
+
+        process.start(program, arguments);
+        if (process.waitForStarted())
+        {
+            qDebug() << "Creating PDF using wkhtmltopdf.exe";
+            if (process.waitForFinished())
+                qDebug() << "wkhtmltopdf.exe finished successfully";
+            else
+            {
+                qDebug() << "wkhtmltopdf.exe process ended with error";
+            }
+        }
+        else
+            qDebug() << "Could not create pdf using: wkhtmltopdf.exe";
+    }
+    else {
+        qDebug() << "could not open temporary html file";
+    }
 }
