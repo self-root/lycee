@@ -56,15 +56,16 @@ void PdfCreator::createTranscript(int classID, int trimester, QString out, const
                 htmlText += "<td style='border-left: 1px solid black; padding: 4mm;'>";
 
             htmlText += R"(<table style="border-collapse: collapse; width: 100%;">)";
-            htmlText += transcriptHeader.arg(trimester)
-                            .arg(schoolInfo_.value("school_name"))
-                            .arg(schoolYear)
-                            .arg(schoolInfo_.value("code"))
-                            .arg(student.number())
-                            .arg(student.name())
-                            .arg(klass.className())
-                            .arg(student.matricule())
-                            .arg(student.situation());
+            htmlText += QStringView(transcriptHeader).arg(QString::number(trimester),
+                                             schoolInfo_.value("school_name"),
+                                             schoolYear,
+                                             schoolInfo_.value("code"),
+                                             QString::number(student.number()),
+                                             student.name(),
+                                             klass.className(),
+                                             student.matricule(),
+                                             student.situation());
+
             htmlText += tableHeader;
             int totalCoef = 0;
             double grade20_total = 0.0;
@@ -606,19 +607,6 @@ double PdfCreator::classAverage(const std::vector<TrimesterAVG> &avgs)
     }
 
     return total / avgs.size();
-}
-
-QString PdfCreator::writeHtml(const QString &html)
-{
-    QDir dir(filePath);
-    QString path = dir.absoluteFilePath(filePath);
-    QString htmlPath = QDir::cleanPath(path + QDir::separator() + "htmltemp.html");
-    QFile file(htmlPath);
-    if (file.open(QIODevice::Text))
-    {
-        file.write(html.toStdString().c_str());
-    }
-    return htmlPath;
 }
 
 void PdfCreator::setCSS(const QMap<QString, QString> &settings, QTextDocument &textDoc)

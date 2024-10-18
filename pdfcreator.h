@@ -51,8 +51,6 @@ private:
 
     double classAverage(const std::vector<TrimesterAVG> &avgs);
 
-    QString writeHtml(const QString &html);
-
     void setCSS(const QMap<QString, QString> &settings, QTextDocument &textDoc);
 
     QString getCss(const QMap<QString, QString> &settings);
