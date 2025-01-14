@@ -16,6 +16,12 @@ QVariant GradeListModel::headerData(int section, Qt::Orientation orientation, in
             return _header.at(section);
             break;
         }
+        case Qt::Vertical:
+        {
+            Student currentStudent = students.at(section);
+            return currentStudent.number();
+            break;
+        }
         default:
             break;
         }
