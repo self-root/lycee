@@ -258,12 +258,13 @@ void PdfCreator::createTotalisationPDF(int classID,
 
     Utils::makeTotalisationHeader(header, subjects);
 
-    htmlText += "<tr>";
+    htmlText += "<thead><tr>";
     for (const QString &h : header)
     {
-        htmlText += QString("<td style='border: 1px solid black;'>%1</td>").arg(h);
+        htmlText += QString("<th style='border: 1px solid black;'>%1</th>").arg(h);
     }
-    htmlText += "</tr>";
+    htmlText += "</tr></thead>";
+    htmlText += "<tbody>";
 
     if (filter == FilterBy::Number)
     {
@@ -348,6 +349,7 @@ void PdfCreator::createTotalisationPDF(int classID,
             htmlText += "</tr>";
         }
     }
+    htmlText += "</tbody>";
 
     htmlText += "</table>";
 
@@ -388,12 +390,13 @@ void PdfCreator::createFinalTotalisationPDF(int classID, QString out, const QStr
 
     Utils::makeFinalTotalisationHeader(header, subjects);
 
-    htmlText += "<tr>";
+    htmlText += "<thead><tr>";
     for (const QString &h : header)
     {
-        htmlText += QString("<td style='border: 1px solid black;'>%1</td>").arg(h);
+        htmlText += QString("<th style='border: 1px solid black;'>%1</th>").arg(h);
     }
-    htmlText += "</tr>";
+    htmlText += "</tr></thead>";
+    htmlText += "<tbody>";
 
     if (by == FilterBy::Number)
     {
@@ -487,7 +490,7 @@ void PdfCreator::createFinalTotalisationPDF(int classID, QString out, const QStr
             htmlText += "</tr>";
         }
     }
-
+    htmlText += "</tbody>";
     htmlText += "</table>";
 
     QString html_body = html_template.arg(getCss(Controller::instance()->getTotalizationFormatSettings()))
@@ -505,46 +508,51 @@ void PdfCreator::createFicheDeNote(int classID, const QString &out, const QStrin
     std::vector<Student> students = dbAccess->loadStudentsByClass(classID);
     Klass klass = dbAccess->classByID(classID);
 
-    QString html = "<table style='width: 100%; border-collapse: collapse;'>";
+    QString html = "<table style='width: 100%'>";
 
     html += QString(R"(
     <tr>
-        <td colspan="9">%1</td>
+        <td>%1</td>
     </tr>
     <tr>
-        <td colspan="9">Code: %2</td>
+        <td>Code: %2</td>
     </tr>
     <tr>
-        <td colspan="9" align="center">Fiche de Notes du trimestre %3</td>
+        <td colspan="3"  align="center">Fiche de Notes du trimestre %3</td>
     </tr>
     <tr>
-        <td colspan="9">Nom du professeur: </td>
+        <td colspan="3">Nom du professeur: </td>
     </tr>
     <tr>
-        <td colspan="3">Matière: </td>
-        <td colspan="3">Classe: %4 </td>
-        <td colspan="3">Année Scholaire: %5</td>
+        <td>Matière: </td>
+        <td align="center">Classe: %4 </td>
+        <td align="right">Année Scholaire: %5</td>
     </tr>
+    </table>
     )").arg(schoolInfo_.value("school_name"))
         .arg(schoolInfo_.value("code"))
         .arg(trimester)
         .arg(klass.className())
         .arg(schoolYear);
 
-
+    html += "<table style='width: 100%; border-collapse: collapse;'>";
     html += R"(
+    <thead>
     <tr>
-        <td style='border: 1px solid black;'>Num</td>
-        <td style='border: 1px solid black;'>Nom et Prénom</td>
-        <td style='border: 1px solid black;'>JRN 1</td>
-        <td style='border: 1px solid black;'>JRN 2</td>
-        <td style='border: 1px solid black;'>JRN 3</td>
-        <td style='border: 1px solid black;'>Moyenne J</td>
-        <td style='border: 1px solid black;'>Composition</td>
-        <td style='border: 1px solid black;'>Coef</td>
-        <td style='border: 1px solid black;'>Note Def</td>
+        <th style='border: 1px solid black;'>Num</th>
+        <th style='border: 1px solid black;'>Nom et Prénom</th>
+        <th style='border: 1px solid black;'>JRN 1</th>
+        <th style='border: 1px solid black;'>JRN 2</th>
+        <th style='border: 1px solid black;'>JRN 3</th>
+        <th style='border: 1px solid black;'>Moyenne J</th>
+        <th style='border: 1px solid black;'>Composition</th>
+        <th style='border: 1px solid black;'>Coef</th>
+        <th style='border: 1px solid black;'>Note Def</th>
     </tr>
+    </thead>
     )";
+
+    html += "<tbody>";
 
     for (const Student &student : students)
     {
@@ -562,7 +570,7 @@ void PdfCreator::createFicheDeNote(int classID, const QString &out, const QStrin
         </tr>
         )").arg(student.number()).arg(student.name());
     }
-
+    html += "</tbody>";
     html += "</table>";
 
     QString html_body = html_template.arg(getCss(Controller::instance()->getTotalizationFormatSettings()))
