@@ -86,7 +86,9 @@ std::vector<FinalAVG> AVGCalculator::computeFinalAVG(const std::vector<Trimester
         TrimesterAVG avg_2 = trimAVGFor(student.id(), trimAVG_2);
         TrimesterAVG avg_3 = trimAVGFor(student.id(), trimAVG_3);
 
-        double final_ = (avg_1.avg + avg_2.avg + (avg_3.avg * 2)) / 4;
+        //double final_ = (avg_1.avg + avg_2.avg + (avg_3.avg * 2)) / 4;
+        std::vector<double> avgs_ = {avg_1.avg, avg_2.avg, avg_3.avg};
+        double final_ = computeFinal(avgs_);
         FinalAVG finalAVG;
         finalAVG.setAvg(final_);
         finalAVG.setStudentId(student.id());
@@ -96,6 +98,28 @@ std::vector<FinalAVG> AVGCalculator::computeFinalAVG(const std::vector<Trimester
     sortFinalAVG(avgs);
     setFinalRanks(avgs);
     return avgs;
+}
+
+double AVGCalculator::computeFinal(std::vector<double> &trimAVGs)
+{
+    //TODO Clean values
+    trimAVGs.erase(std::remove_if(trimAVGs.begin(), trimAVGs.end(), [](double avg){
+        return avg <= 0;
+    }), trimAVGs.end());
+    //Compute
+
+    if (trimAVGs.size() == 1)
+        return trimAVGs.at(0);
+    else if (trimAVGs.size() == 2)
+    {
+        return (trimAVGs.at(0) + trimAVGs.at(1) * 2) / 3;
+    }
+    else if (trimAVGs.size() == 3)
+    {
+        return (trimAVGs.at(0) + trimAVGs.at(1) + trimAVGs.at(2) * 2) / 4;
+    }
+    else
+        return 0;
 }
 
 TrimesterAVG AVGCalculator::trimAVGFor(int studentID, const std::vector<TrimesterAVG> &trimAVG)
@@ -132,8 +156,19 @@ void AVGCalculator::sortFinalAVG(std::vector<FinalAVG> &finalAVG, bool ask)
 
 void AVGCalculator::setFinalRanks( std::vector<FinalAVG> &finalAVG)
 {
-    for (std::size_t i = 0; i < finalAVG.size(); i++)
+    int i = 1;
+    for (FinalAVG &avg : finalAVG)
     {
-        finalAVG.at(i).setRank(i + 1);
+        if (avg.avg() <= 0)
+            continue;
+
+        avg.setRank(i);
+        i++;
     }
+    /*for (std::size_t i = 0; i < finalAVG.size(); i++)
+    {
+        if (finalAVG.at(i).avg() <= 0)
+            continue;
+        finalAVG.at(i).setRank(i + 1);
+    }*/
 }

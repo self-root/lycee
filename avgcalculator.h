@@ -25,6 +25,7 @@ public:
                                     const std::vector<TrimesterAVG> &trimAVG_2,
                                     const std::vector<TrimesterAVG> &trimAVG_3,
                                     const std::vector<Student> &students);
+    static double computeFinal(std::vector<double> &trimAVGs);
 
     static TrimesterAVG trimAVGFor(int studentID, const std::vector<TrimesterAVG> &trimAVG);
     static void sortFinalAVG(std::vector<FinalAVG> &finalAVG, bool ask = true);

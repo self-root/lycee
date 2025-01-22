@@ -222,10 +222,20 @@ void GradeListModel::computeAVG()
 
 void GradeListModel::setRanks(std::vector<TrimesterAVG> &avgs)
 {
-    for (std::size_t i = 0; i < avgs.size(); i++)
+    int i = 1;
+    for (TrimesterAVG &avg : avgs)
     {
-        avgs.at(i).rank = i + 1;
+        if (avg.avg <= 0)
+            continue;
+        avg.rank = i;
+        i++;
     }
+    /*for (std::size_t i = 0; i < avgs.size(); i++)
+    {
+        if (avgs[i].avg <= 0)
+            continue;
+        avgs.at(i).rank = i + 1;
+    }*/
 }
 
 void GradeListModel::studentGradeFromClipboard(GradeMetaData &grade, const QString &studentName)

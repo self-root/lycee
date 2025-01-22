@@ -170,7 +170,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
            </widget>
            <widget class="QWidget" name="ficheTab">
             <attribute name="title">
-             <string>Fiche de notes</string>
+             <string>Totalisation et Fiche de notes</string>
             </attribute>
             <layout class="QVBoxLayout" name="verticalLayout_5">
              <item>

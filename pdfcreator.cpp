@@ -30,6 +30,9 @@ void PdfCreator::createTranscript(int classID, int trimester, QString out, const
     AVGCalculator::sortAVG(trimesterAVGs);
     std::vector<Subject> subjects = dbAccess->getSubjectByClass(classID);
     std::vector<StudentGrade> grades;
+    trimesterAVGs.erase(std::remove_if(trimesterAVGs.begin(), trimesterAVGs.end(), [](TrimesterAVG avg){
+        return avg.avg <= 0;
+    }), trimesterAVGs.end());
     qDebug() << "Trimavgs size: " << trimesterAVGs.size() << "Students: " << students.size();
 
     Klass klass = dbAccess->classByID(classID);
@@ -92,7 +95,7 @@ void PdfCreator::createTranscript(int classID, int trimester, QString out, const
                             .arg(Utils::toString(trimAvg.avg))
                             .arg(locale.toString(classAVG, 'f', 2))
                             .arg(trimAvg.rank)
-                            .arg(students.size());
+                            .arg(trimesterAVGs.size());
 
 
             htmlText += footer
@@ -141,6 +144,9 @@ void PdfCreator::createFinalTranscipt(int classID, QString out, const QString &s
 
     std::vector<FinalAVG> finals = dbAccess->getFinalAVGs(classID);
     AVGCalculator::sortFinalAVG(finals);
+    finals.erase(std::remove_if(finals.begin(), finals.end(), [](FinalAVG avg){
+                            return avg.avg() <= 0;
+                        }), finals.end());
 
     for (const FinalAVG &finalAvg : finals)
     {
@@ -543,9 +549,9 @@ void PdfCreator::createFicheDeNote(int classID, const QString &out, const QStrin
         <th style='border: 1px solid black;'>Nom et Prénom</th>
         <th style='border: 1px solid black;'>JRN 1</th>
         <th style='border: 1px solid black;'>JRN 2</th>
-        <th style='border: 1px solid black;'>JRN 3</th>
         <th style='border: 1px solid black;'>Moyenne J</th>
         <th style='border: 1px solid black;'>Composition</th>
+        <th style='border: 1px solid black;'>Moyenne G</th>
         <th style='border: 1px solid black;'>Coef</th>
         <th style='border: 1px solid black;'>Note Def</th>
     </tr>
