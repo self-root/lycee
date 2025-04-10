@@ -240,7 +240,7 @@ std::vector<Student> DatabaseAccess::loadStudentsByClass(int classID)
 {
     std::vector<Student> students;
     QSqlQuery query(database);
-    query.prepare("SELECT student.id, name, matricule, dateNaiss, situation, sexe, studentNumber FROM student INNER JOIN klass ON klass.id = student.f_klass WHERE klass.id = :classId");
+    query.prepare("SELECT student.id, name, matricule, dateNaiss, situation, sexe, studentNumber FROM student INNER JOIN klass ON klass.id = student.f_klass WHERE klass.id = :classId ORDER BY studentNumber ASC");
     query.bindValue(":classId", classID);
 
     if (query.exec())
@@ -530,6 +530,7 @@ void DatabaseAccess::studentGrades(int klassID,
         INNER JOIN trimester on trimester.id = f_trimester
         INNER JOIN klass on klass.id = student.f_klass
         WHERE klass.id = :klassID AND f_trimester  = :trimester
+        ORDER BY studentNumber ASC
     )");
 
     query.bindValue(":klassID", klassID);
@@ -884,6 +885,7 @@ std::vector<TrimesterAVG> DatabaseAccess::getTrimesterAVGs(int trimester, int kl
         INNER JOIN student
         ON student.id = f_student
         WHERE f_trimester = :trimester AND f_klass = :klassID
+        ORDER BY studentNumber ASC
     )");
 
     query.bindValue(":trimester", trimester);
