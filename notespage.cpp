@@ -41,6 +41,7 @@ void NotesPage::on_schoolYearCombo_activated(int index)
     {
         ui->classCombo->addItem(klass.className());
     }
+    on_classCombo_activated(0);
 }
 
 
@@ -50,6 +51,10 @@ void NotesPage::on_classCombo_activated(int index)
     Klass klass = Controller::instance()->klassByName(ui->classCombo->currentText());
     gradesView->loadStudentGrades(klass.classId(), ui->trimestreCombo->currentIndex() + 1);
     setUpsubjectLists(klass.classId());
+    if (ui->trimestreCombo->currentIndex() == 2)
+    {
+        showMoyenneGeneralTab();
+    }
 }
 
 
@@ -58,19 +63,11 @@ void NotesPage::on_trimestreCombo_activated(int index)
     on_classCombo_activated(0);
     if (index == 2)
     {
-        generalComputeAction->setEnabled(true);
-        generalAVGView = new FinalAVGView;
-        tabWidget->addTab(generalAVGView, "Moyenne Générale");
-        generalAVGView->model->loadData(Controller::instance()->klassByName(ui->classCombo->currentText()).classId());
+        showMoyenneGeneralTab();
     }
     else
     {
-        generalComputeAction->setEnabled(false);
-        if (generalAVGView != nullptr)
-        {
-            delete generalAVGView;
-            generalAVGView = nullptr;
-        }
+        hideMoyenneGeneralTab();
     }
 }
 
@@ -201,6 +198,28 @@ void NotesPage::setupToolBar()
     QObject::connect(gradesToPDFAction, &QAction::triggered, this, &NotesPage::onSaveGradesPDFAction);
     QObject::connect(gradesToExcelAction, &QAction::triggered, this, &NotesPage::onSaveGradesExcelAction);
     QObject::connect(ficheDeNoteAction, &QAction::triggered, this, &NotesPage::onFicheDeNote);
+}
+
+void NotesPage::showMoyenneGeneralTab()
+{
+    if (generalAVGView == nullptr)
+    {
+        generalAVGView = new FinalAVGView;
+        tabWidget->addTab(generalAVGView, "Moyenne Générale");
+    }
+
+    generalComputeAction->setEnabled(true);
+    generalAVGView->model->loadData(Controller::instance()->klassByName(ui->classCombo->currentText()).classId());
+}
+
+void NotesPage::hideMoyenneGeneralTab()
+{
+    generalComputeAction->setEnabled(false);
+    if (generalAVGView != nullptr)
+    {
+        delete generalAVGView;
+        generalAVGView = nullptr;
+    }
 }
 
 

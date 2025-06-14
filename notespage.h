@@ -78,6 +78,10 @@ private:
     GradeMetaData currentGrade;
     TotalisationCreateForm *totalisationForm = nullptr;
 
+private:
+    void showMoyenneGeneralTab();
+    void hideMoyenneGeneralTab();
+
 };
 
 #endif // NOTESPAGE_H
