@@ -81,6 +81,8 @@ std::vector<Student> ClipBoardParser::parseStudentsClipboard(const QString &data
             }
 
             QDate dateNsiss = QDate::fromString(rowValues.at(4), "dd/MM/yyyy");
+            if (!dateNsiss.isValid())
+                dateNsiss = QDate::fromString(rowValues.at(4), "d/M/yyyy");
             student.setBirthDay(dateNsiss.toString("dd-MM-yyyy"));
             student.setMatricule(rowValues.at(5));
             students.push_back(student);

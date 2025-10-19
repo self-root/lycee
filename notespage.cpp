@@ -5,6 +5,7 @@
 #include "clipboardparser.h"
 #include <QClipboard>
 #include <QFileDialog>
+#include <QMessageBox>
 
 NotesPage::NotesPage(QWidget *parent)
     : QWidget(parent)
@@ -79,6 +80,7 @@ void NotesPage::setUpsubjectLists(int klassID)
     {
         ui->subjectCombo->addItem(s.subjectName());
     }
+    currentClassID = klassID;
 }
 
 void NotesPage::onStudentSelected(const Student &student)
@@ -265,24 +267,35 @@ void NotesPage::onPaste(bool _)
     Q_UNUSED(_);
     QClipboard *clipboard = QApplication::clipboard();
     //qDebug() << clipboard->text();
-    std::vector<ClipboardGrade> grades = ClipBoardParser::parseGradeClipboard(clipboard->text());
-    if (!grades.empty())
+    int ret = QMessageBox::question(this, "Confirmation", "Coller la list des notes dans la class: " + DatabaseAccess::instance()->classByID(currentClassID).className(), QMessageBox::Ok | QMessageBox::Cancel);
+    switch (ret)
     {
-        QString subjectName = "";
-        try {
-            subjectName = grades.at(0).name;
-        } catch (...) {
-            return;
-        }
+    case QMessageBox::Ok:{
+        std::vector<ClipboardGrade> grades = ClipBoardParser::parseGradeClipboard(clipboard->text());
+        if (!grades.empty())
+        {
+            QString subjectName = "";
+            try {
+                subjectName = grades.at(0).name;
+            } catch (...) {
+                return;
+            }
 
-        for (std::size_t i = 1; i < grades.size(); ++i) {
-            GradeMetaData gradeMeta;
-            gradeMeta.grade = grades.at(i).grade;
-            gradeMeta.subjectName = subjectName;
-            gradesView->model->studentGradeFromClipboard(gradeMeta, grades.at(i).studentName);
+            for (std::size_t i = 1; i < grades.size(); ++i) {
+                GradeMetaData gradeMeta;
+                gradeMeta.grade = grades.at(i).grade;
+                gradeMeta.subjectName = subjectName;
+                gradesView->model->studentGradeFromClipboard(gradeMeta, grades.at(i).studentName);
+            }
+            Controller::instance()->checkDbError();
         }
-        Controller::instance()->checkDbError();
+        break;
     }
+    case QMessageBox::Cancel:
+    default:
+        break;
+    }
+
 }
 
 void NotesPage::onCompute(bool _)

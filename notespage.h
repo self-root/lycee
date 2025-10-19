@@ -82,6 +82,8 @@ private:
     void showMoyenneGeneralTab();
     void hideMoyenneGeneralTab();
 
+    int currentClassID = 0;
+
 };
 
 #endif // NOTESPAGE_H

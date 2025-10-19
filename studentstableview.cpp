@@ -1,6 +1,7 @@
 #include "studentstableview.h"
 #include "controller.h"
 #include "clipboardparser.h"
+#include "databaseaccess.h"
 
 #include <QDropEvent>
 #include <QMimeData>
@@ -21,6 +22,7 @@ StudentsTableView::StudentsTableView(QTableView *parent) : QTableView(parent)
 
 void StudentsTableView::loadStudents(int id)
 {
+    currentClassID = id;
     model->loadStudents(id);
 }
 
@@ -105,9 +107,19 @@ void StudentsTableView::onPasteAction(bool _)
 {
     Q_UNUSED(_);
     QClipboard *clipboard = QApplication::clipboard();
+    int ret = QMessageBox::question(this, "Confirmation", "Coller la list de la class: " + DatabaseAccess::instance()->classByID(currentClassID).className(), QMessageBox::Ok | QMessageBox::Cancel);
+    switch (ret)
+    {
+    case QMessageBox::Ok:{
+        model->addStudentsFromClipboard(ClipBoardParser::parseStudentsClipboard(clipboard->text()));
+        Controller::instance()->checkDbError();
+        break;
+    }
+    case QMessageBox::Cancel:
+    default:
+        break;
+    }
 
-    model->addStudentsFromClipboard(ClipBoardParser::parseStudentsClipboard(clipboard->text()));
-    Controller::instance()->checkDbError();
 
 }
 

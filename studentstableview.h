@@ -38,6 +38,7 @@ public slots:
 private:
     StudentListModel *model;
     QSortFilterProxyModel *proxyModel;
+    int currentClassID = 0;
     QMenu *menu = nullptr;
     QAction *addAction = nullptr;
     QAction *editAction = nullptr;
