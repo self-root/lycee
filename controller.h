@@ -29,7 +29,6 @@ public:
     void init();
     void checkDbError();
     void getKlassList(const QString &schoolYear);
-    Klass klassByName(const QString &className);
     QMap<QString, QString> getSchoolSettings();
     void saveSchoolSettings(const QMap<QString, QString> &setting);
     void createTranscript(int classID, int trimester, const QString &filepath, const QString &schoolyear);
@@ -51,12 +50,15 @@ public:
     void saveTranscriptFormatSettings(const QMap<QString, QString> &values);
     void saveTotalizationFormatSettings(const QMap<QString, QString> &values);
 private slots:
-    void onTrancriptCreated();
+    void onTrancriptCreated(const QString &filePath);
     void onToTalisationPDFCreated(const QString &filePath);
     void onFinalTotalisationPDFCreated(const QString &filepath);
 
 signals:
     void databaseError(const QString &errorMessage);
+    void exportStarted(const QString &description);
+    void exportSucceeded(const QString &filePath);
+    void exportFailed(const QString &errorMessage);
 };
 
 #endif // CONTROLLER_H

@@ -80,6 +80,8 @@ QVariant GradeListModel::data(const QModelIndex &index, int role) const
         break;
     }
     case Qt::EditRole:{
+        if (col <= 0 || col > static_cast<int>(subjects.size()))
+            break;
         double grade = gradeForSubject(currentStudent, subjects.at(col-1));
         if (grade != -1)
             return grade;
@@ -117,7 +119,7 @@ double GradeListModel::gradeForSubject(const Student &student, const Subject &su
     double __grade = -1;
     for (const StudentGrade &grade : studentsGrade)
     {
-        if (grade.mStudent.name() == student.name() && grade.mSubject.subjectName() == subject.subjectName())
+        if (grade.mStudent.id() == student.id() && grade.mSubject.subjectId() == subject.subjectId())
         {
             if (grade.skip())
                 __grade = -2;
@@ -128,12 +130,12 @@ double GradeListModel::gradeForSubject(const Student &student, const Subject &su
     return __grade;
 }
 
-GradeMetaData GradeListModel::gradeFor(const QString &studentName, const QString &subjectName) const
+GradeMetaData GradeListModel::gradeFor(const Student &student, const Subject &subject) const
 {
     GradeMetaData gradeMeta;
     for (const StudentGrade &grade : studentsGrade)
     {
-        if (grade.mStudent.name() == studentName && grade.mSubject.subjectName() == subjectName)
+        if (grade.mStudent.id() == student.id() && grade.mSubject.subjectId() == subject.subjectId())
         {
             gradeMeta.subjectName = grade.mSubject.subjectName();
             gradeMeta.grade = grade.grade();
@@ -146,30 +148,21 @@ GradeMetaData GradeListModel::gradeFor(const QString &studentName, const QString
     return gradeMeta;
 }
 
-Student GradeListModel::studentFromName(const QString &studentName)
+Student GradeListModel::studentAt(int row) const
 {
-    Student _student;
-    for (Student &_s : students)
-    {
-        if (_s.name() ==  studentName)
-        {
-            _student = _s;
-            break;
-        }
-    }
-    return _student;
+    if (row < 0 || row >= static_cast<int>(students.size()))
+        return Student();
+    return students.at(row);
 }
 
-Subject GradeListModel::subjectFromName(const QString &subjectName)
+Subject GradeListModel::subjectFromID(int subjectID) const
 {
-    Subject subject;
-    for (Subject &_subject : subjects)
+    for (const Subject &subject : subjects)
     {
-        if (_subject.subjectName().compare(subjectName, Qt::CaseInsensitive) == 0)
-            subject = _subject;
+        if (subject.subjectId() == subjectID)
+            return subject;
     }
-
-    return subject;
+    return Subject();
 }
 
 void GradeListModel::updateGrade(const GradeMetaData &gradeMeta)
@@ -238,23 +231,54 @@ void GradeListModel::setRanks(std::vector<TrimesterAVG> &avgs)
     }*/
 }
 
-void GradeListModel::studentGradeFromClipboard(GradeMetaData &grade, const QString &studentName)
+int GradeListModel::importGrades(const GradeClipboardParseResult &result, QStringList &rejectedRows)
 {
-    Subject subject = subjectFromName(grade.subjectName);
-    int trimester = currentTrimester;
-    Student student = studentFromName(studentName);
-    if (student.id() < 0)
-        return;
-
-    DatabaseAccess::instance()->getGrade(grade, student.id(), subject.subjectId(), trimester);
-    if (grade.id > 0)
+    if (currentClass < 1 || currentTrimester < 1 || currentTrimester > 3)
     {
-        updateGrade(grade);
+        rejectedRows << "Aucune classe ou trimestre valide n'est selectionne.";
+        return 0;
     }
 
-    else {
-        addGrade(grade, studentName);
+    std::vector<Subject> matchingSubjects;
+    for (const Subject &subject : subjects)
+    {
+        if (subject.subjectName().compare(result.subjectName, Qt::CaseInsensitive) == 0)
+            matchingSubjects.push_back(subject);
     }
+    if (matchingSubjects.size() != 1)
+    {
+        rejectedRows << QString("La matiere '%1' est absente ou ambigue dans cette classe.")
+                            .arg(result.subjectName);
+        return 0;
+    }
+
+    std::vector<GradeImportRecord> records;
+    for (const ClipboardGrade &clipboardGrade : result.grades)
+    {
+        std::vector<Student> matches;
+        for (const Student &student : students)
+        {
+            if (student.name().compare(clipboardGrade.studentName, Qt::CaseInsensitive) == 0)
+                matches.push_back(student);
+        }
+        if (matches.size() != 1)
+        {
+            rejectedRows << QString("Eleve '%1' absent ou nom en double.").arg(clipboardGrade.studentName);
+            continue;
+        }
+
+        GradeImportRecord record;
+        record.studentID = matches.front().id();
+        record.subjectID = matchingSubjects.front().subjectId();
+        record.trimesterID = currentTrimester;
+        record.grade = clipboardGrade.grade;
+        records.push_back(record);
+    }
+
+    int imported = 0;
+    if (!records.empty() && DatabaseAccess::instance()->importGrades(records, &imported))
+        loadModelData(currentTrimester, currentClass);
+    return imported;
 }
 
 void GradeListModel::updateGrade20()
@@ -287,10 +311,12 @@ bool GradeListModel::setData(const QModelIndex &index, const QVariant &value, in
         if (!converted)
             return false;
 
-        QString subjecName = _header.at(index.column());
-        Student student = studentFromName(index.sibling(index.row(), 0).data().toString());
-        GradeMetaData grade = gradeFor(student.name(), subjecName);
-        qDebug() << "Data editing: " << student.name() << " - " << subjecName << " -> " << newGrade;
+        if (index.column() < 1 || index.column() > static_cast<int>(subjects.size()))
+            return false;
+        Student student = studentAt(index.row());
+        Subject subject = subjects.at(index.column() - 1);
+        GradeMetaData grade = gradeFor(student, subject);
+        qDebug() << "Data editing: " << student.name() << " - " << subject.subjectName() << " -> " << newGrade;
         if (grade.id > 0)
         {
             if (newGrade != grade.grade)
@@ -305,10 +331,9 @@ bool GradeListModel::setData(const QModelIndex &index, const QVariant &value, in
         else
         {
             grade.grade = newGrade;
-            Subject subject = subjectFromName(subjecName);
             grade.coef = subject.subjectCoef();
-            grade.subjectName = subjecName;
-            addGrade(grade, student.name());
+            grade.subjectName = subject.subjectName();
+            addGrade(grade, student, subject);
             return true;
         }
         return true;
@@ -321,13 +346,13 @@ int GradeListModel::getCurrentClass()
     return currentClass;
 }
 
-void GradeListModel::addGrade(GradeMetaData &gradeMeta, const QString &studentName)
+void GradeListModel::addGrade(GradeMetaData &gradeMeta, const Student &student, const Subject &subject)
 {
-    Subject subject = subjectFromName(gradeMeta.subjectName);
-    int trimester = currentTrimester;
-    Student student = studentFromName(studentName);
-    DatabaseAccess::instance()->addGrade(gradeMeta, trimester, student.id(), subject.subjectId());
-    loadModelData(currentTrimester, currentClass);
+    if (student.id() < 1 || subject.subjectId() < 1 || currentTrimester < 1)
+        return;
+    gradeMeta.subjectName = subject.subjectName();
+    if (DatabaseAccess::instance()->addGrade(gradeMeta, currentTrimester, student.id(), subject.subjectId()))
+        loadModelData(currentTrimester, currentClass);
 }
 
 void GradeListModel::makeHeader()

@@ -128,6 +128,8 @@ QVariant StudentListModel::data(const QModelIndex &index, int role) const
         return QVariant();
 
     Student student = students.at(index.row());
+    if (role == StudentIdRole)
+        return student.id();
     switch (index.column()) {
     case 0:
         switch (role) {
@@ -201,20 +203,22 @@ void StudentListModel::loadStudents(int klassId)
 
 void StudentListModel::addStudent(Student student)
 {
-    beginResetModel();
     Student _student = student;
-    DatabaseAccess::instance()->addStudent(_student, klassID);
+    if (!DatabaseAccess::instance()->addStudent(_student, klassID))
+        return;
+    beginResetModel();
     students.push_back(_student);
     endResetModel();
 }
 
 void StudentListModel::updateStudent(Student student)
 {
+    if (!DatabaseAccess::instance()->updateStudent(student, klassID))
+        return;
     beginResetModel();
-    DatabaseAccess::instance()->updateStudent(student, klassID);
     for (std::size_t i = 0; i < students.size(); i++)
     {
-        if (students.at(i).name() == student.name())
+        if (students.at(i).id() == student.id())
         {
             students[i] = student;
             break;
@@ -225,11 +229,12 @@ void StudentListModel::updateStudent(Student student)
 
 void StudentListModel::deleteStudent(const Student &student)
 {
+    if (!DatabaseAccess::instance()->deleteStudent(student, klassID))
+        return;
     beginResetModel();
-    DatabaseAccess::instance()->deleteStudent(student, klassID);
     for (std::size_t i = 0; i < students.size(); i++)
     {
-        if (students.at(i).name() == student.name())
+        if (students.at(i).id() == student.id())
         {
             students.erase((std::begin(students) + i));
             break;
@@ -238,30 +243,22 @@ void StudentListModel::deleteStudent(const Student &student)
     endResetModel();
 }
 
-Student StudentListModel::studentByName(const QString &name)
+Student StudentListModel::studentAt(int row) const
 {
-    Student student;
-    for (const Student &_student : students)
-    {
-        if (_student.name() == name)
-        {
-            student = _student;
-            break;
-        }
-    }
-    return student;
+    if (row < 0 || row >= static_cast<int>(students.size()))
+        return Student();
+    return students.at(row);
 }
 
-void StudentListModel::addStudentsFromClipboard(const std::vector<Student> &students)
+int StudentListModel::addStudentsFromClipboard(const std::vector<Student> &newStudents)
 {
     if (klassID < 0)
-        return;
-    for (const Student &s : students)
-    {
-        if (s.name() == studentByName(s.name()).name())
-            continue;
-        addStudent(s);
-    }
+        return 0;
+    int inserted = 0;
+    if (!DatabaseAccess::instance()->addStudents(newStudents, klassID, &inserted))
+        return 0;
+    loadStudents(klassID);
+    return inserted;
 }
 
 /*bool StudentListModel::setData(const QModelIndex &index, const QVariant &value, int role)

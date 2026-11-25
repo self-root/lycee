@@ -1,7 +1,6 @@
 #include "controller.h"
 #include "databaseaccess.h"
 #include "pdfcreator.h"
-#include "rwexcel.h"
 #include <QDir>
 #include <QStandardPaths>
 #include <QSettings>
@@ -14,6 +13,7 @@ Controller::Controller(QObject *parent) : QObject(parent)
     QCoreApplication::setOrganizationDomain("irootsoftware.com");
     QCoreApplication::setApplicationName("Lycee");
     creator = new PdfCreator;
+    pdfCreationThread.setObjectName("pdf-export");
     creator->moveToThread(&pdfCreationThread);
     pdfCreationThread.start();
 
@@ -21,6 +21,9 @@ Controller::Controller(QObject *parent) : QObject(parent)
     QObject::connect(creator, &PdfCreator::pdfCreated, this, &Controller::onTrancriptCreated);
     QObject::connect(creator, &PdfCreator::totalisationPDFCreated,this, &Controller::onToTalisationPDFCreated);
     QObject::connect(creator, &PdfCreator::finalTotalisationExcelCreated, this, &Controller::onFinalTotalisationPDFCreated);
+    QObject::connect(creator, &PdfCreator::ficheDeNoteCreated, this, &Controller::onToTalisationPDFCreated);
+    QObject::connect(creator, &PdfCreator::exportFailed, this, &Controller::exportFailed);
+    QObject::connect(creator, &PdfCreator::excelCreated, this, &Controller::onToTalisationPDFCreated);
 
 }
 
@@ -61,20 +64,6 @@ void Controller::getKlassList(const QString &schoolYear)
     checkDbError();
 }
 
-Klass Controller::klassByName(const QString &className)
-{
-    Klass klass;
-    for (const Klass &k : klasses)
-    {
-        if (k.className() == className)
-        {
-            klass = k;
-        }
-    }
-
-    return klass;
-}
-
 QMap<QString, QString> Controller::getSchoolSettings()
 {
     QMap<QString, QString> values;
@@ -102,6 +91,7 @@ void Controller::saveSchoolSettings(const QMap<QString, QString> &setting)
 
 void Controller::createTranscript(int classID, int trimester, const QString &filepath, const QString &schoolyear)
 {
+    emit exportStarted("Creation du bulletin PDF...");
     if (trimester == 3)
     {
         QMetaObject::invokeMethod(creator,
@@ -130,8 +120,9 @@ void Controller::createTotalisationPDF(int classID,
                                        Order by,
                                        FilterBy filter)
 {
-    int orderID = qRegisterMetaType<Order>();
-    int filterByID = qRegisterMetaType<FilterBy>();
+    emit exportStarted("Creation de la totalisation PDF...");
+    qRegisterMetaType<Order>();
+    qRegisterMetaType<FilterBy>();
     if (trimester == 3)
     {
         /*    void  createFinalTotalisationPDF(int classID,
@@ -169,26 +160,22 @@ void Controller::createTotalisationExcel(int classID,
                                          Order order,
                                          FilterBy by)
 {
-    try
-    {
-        if (trimester == 3)
-        {
-            RWExcel::createFinalTotalisation(classID, filepath, order, by);
-        }
-        else
-        {
-            RWExcel::createTotalisation(classID, trimester, filepath, order, by);
-        }
-
-    }
-    catch (std::exception &e)
-    {
-        qDebug() << "Excel write error: " << e.what();
-    }
+    emit exportStarted("Creation de la totalisation Excel...");
+    qRegisterMetaType<Order>();
+    qRegisterMetaType<FilterBy>();
+    QMetaObject::invokeMethod(creator,
+                              "createTotalisationExcel",
+                              Qt::QueuedConnection,
+                              Q_ARG(int, classID),
+                              Q_ARG(int, trimester),
+                              Q_ARG(QString, filepath),
+                              Q_ARG(Order, order),
+                              Q_ARG(FilterBy, by));
 }
 
 void Controller::createFicheDeNote(int klassID, const QString &schoolYear, int trimester, const QString &filepath)
 {
+    emit exportStarted("Creation de la fiche de notes PDF...");
     QMetaObject::invokeMethod(creator,
                               "createFicheDeNote",
                               Qt::QueuedConnection,
@@ -247,17 +234,20 @@ void Controller::saveTotalizationFormatSettings(const QMap<QString, QString> &va
     settings.endGroup();
 }
 
-void Controller::onTrancriptCreated()
+void Controller::onTrancriptCreated(const QString &filePath)
 {
     qDebug() << "Transcript created";
+    emit exportSucceeded(filePath);
 }
 
 void Controller::onToTalisationPDFCreated(const QString &filePath)
 {
     qDebug() << "Totalisation saved at: " << filePath;
+    emit exportSucceeded(filePath);
 }
 
 void Controller::onFinalTotalisationPDFCreated(const QString &filepath)
 {
     qDebug() << "Final totalisation PDF created at: " << filepath;
+    emit exportSucceeded(filepath);
 }

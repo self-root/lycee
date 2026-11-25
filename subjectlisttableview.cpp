@@ -1,5 +1,6 @@
 #include "subjectlisttableview.h"
 #include "controller.h"
+#include <QMessageBox>
 
 
 SubjectListTableView::SubjectListTableView(QTableView *parent) : QTableView(parent)
@@ -43,7 +44,18 @@ void SubjectListTableView::onDeleteAction()
     if (currentIndex().isValid())
     {
         Subject subject = model->subjectAt(currentIndex().row());
-        model->removeSubject(subject);
+        const int answer = QMessageBox::warning(
+            this,
+            "Supprimer la matiere",
+            QString("Supprimer '%1' ? Toutes les notes associees seront supprimees. Une sauvegarde sera creee avant l'operation.")
+                .arg(subject.subjectName()),
+            QMessageBox::Cancel | QMessageBox::Yes,
+            QMessageBox::Cancel);
+        if (answer == QMessageBox::Yes)
+        {
+            model->removeSubject(subject);
+            Controller::instance()->checkDbError();
+        }
     }
 
 }

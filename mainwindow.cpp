@@ -4,6 +4,7 @@
 #include <QMouseEvent>
 #include <QSettings>
 #include <QMessageBox>
+#include <QStatusBar>
 #include "controller.h"
 
 
@@ -14,9 +15,12 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
     this->setWindowIcon(QIcon(":/icons/images/add_student.png"));
+    QObject::connect(Controller::instance(), &Controller::databaseError, this, &MainWindow::onDatabaseError);
+    QObject::connect(Controller::instance(), &Controller::exportStarted, this, &MainWindow::onExportStarted);
+    QObject::connect(Controller::instance(), &Controller::exportSucceeded, this, &MainWindow::onExportSucceeded);
+    QObject::connect(Controller::instance(), &Controller::exportFailed, this, &MainWindow::onExportFailed);
     Controller::instance()->init();
     //this->setMouseTracking(true);
-    QObject::connect(Controller::instance(), &Controller::databaseError, this, &MainWindow::onDatabaseError);
     //this->setWindowFlags(Qt::FramelessWindowHint);
 
     setWindowTitle("Lycee");
@@ -117,6 +121,22 @@ void MainWindow::on_etudiantsBtn_clicked()
 void MainWindow::onDatabaseError(const QString &errorMessage)
 {
     QMessageBox::warning(this, "Database error", errorMessage);
+}
+
+void MainWindow::onExportStarted(const QString &description)
+{
+    statusBar()->showMessage(description);
+}
+
+void MainWindow::onExportSucceeded(const QString &filePath)
+{
+    statusBar()->showMessage(QString("Export termine: %1").arg(filePath), 10000);
+}
+
+void MainWindow::onExportFailed(const QString &errorMessage)
+{
+    statusBar()->clearMessage();
+    QMessageBox::critical(this, "Echec de l'export", errorMessage);
 }
 
 

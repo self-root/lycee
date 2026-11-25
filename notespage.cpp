@@ -6,6 +6,7 @@
 #include <QClipboard>
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QApplication>
 
 NotesPage::NotesPage(QWidget *parent)
     : QWidget(parent)
@@ -24,6 +25,7 @@ NotesPage::NotesPage(QWidget *parent)
     QObject::connect(totalisationForm, &TotalisationCreateForm::totalisationExcel, this, &NotesPage::onToExcel);
 
     QObject::connect(gradesView, &GradesTableView::studentSelected, this, &NotesPage::onStudentSelected);
+    updateActionState();
 }
 
 NotesPage::~NotesPage()
@@ -37,10 +39,10 @@ void NotesPage::on_schoolYearCombo_activated(int index)
     QString schoolYear = ui->schoolYearCombo->currentText();
     Controller::instance()->getKlassList(schoolYear);
     ui->classCombo->clear();
-    ui->classCombo->addItem("--");
+    ui->classCombo->addItem("--", -1);
     for (const Klass &klass : Controller::instance()->klasses)
     {
-        ui->classCombo->addItem(klass.className());
+        ui->classCombo->addItem(klass.className(), klass.classId());
     }
     on_classCombo_activated(0);
 }
@@ -48,20 +50,27 @@ void NotesPage::on_schoolYearCombo_activated(int index)
 
 void NotesPage::on_classCombo_activated(int index)
 {
-    Q_UNUSED(index);
-    Klass klass = Controller::instance()->klassByName(ui->classCombo->currentText());
-    gradesView->loadStudentGrades(klass.classId(), ui->trimestreCombo->currentIndex() + 1);
-    setUpsubjectLists(klass.classId());
-    if (ui->trimestreCombo->currentIndex() == 2)
+    currentClassID = ui->classCombo->itemData(index).toInt();
+    currentStudent = Student();
+    ui->studentNameEdit->clear();
+    clearGradeForm();
+    gradesView->loadStudentGrades(currentClassID, ui->trimestreCombo->currentIndex() + 1);
+    setUpsubjectLists(currentClassID);
+    if (ui->trimestreCombo->currentIndex() == 2 && hasValidContext())
     {
         showMoyenneGeneralTab();
     }
+    else if (!hasValidContext())
+    {
+        hideMoyenneGeneralTab();
+    }
+    updateActionState();
 }
 
 
 void NotesPage::on_trimestreCombo_activated(int index)
 {
-    on_classCombo_activated(0);
+    on_classCombo_activated(ui->classCombo->currentIndex());
     if (index == 2)
     {
         showMoyenneGeneralTab();
@@ -78,21 +87,24 @@ void NotesPage::setUpsubjectLists(int klassID)
     ui->subjectCombo->clear();
     for (const auto &s : subjects)
     {
-        ui->subjectCombo->addItem(s.subjectName());
+        ui->subjectCombo->addItem(s.subjectName(), s.subjectId());
     }
     currentClassID = klassID;
+    updateActionState();
 }
 
 void NotesPage::onStudentSelected(const Student &student)
 {
     ui->studentNameEdit->setText(student.name());
+    currentStudent = student;
     setGradeData();
 }
 
 void NotesPage::setGradeData()
 {
     clearGradeForm();
-    GradeMetaData gradeMeta = gradesView->model->gradeFor(ui->studentNameEdit->text(), ui->subjectCombo->currentText());
+    const Subject subject = gradesView->model->subjectFromID(ui->subjectCombo->currentData().toInt());
+    GradeMetaData gradeMeta = gradesView->model->gradeFor(currentStudent, subject);
     if (gradeMeta.id > 0)
     {
         ui->gradeSpin->setValue(gradeMeta.grade);
@@ -112,13 +124,18 @@ void NotesPage::loadSchoolYear()
 
 void NotesPage::onToPDF(Order order, FilterBy by)
 {
+    if (!hasValidContext())
+    {
+        QMessageBox::warning(this, "Classe requise", "Selectionnez une annee scolaire et une classe.");
+        return;
+    }
     qDebug() << "create PDF";
-    Klass klass = Controller::instance()->klassByName(ui->classCombo->currentText());
     int trimester = ui->trimestreCombo->currentIndex() + 1;
     QString schoolYear = ui->schoolYearCombo->currentText();
     QFileDialog fileDialog;
     fileDialog.setAcceptMode(QFileDialog::AcceptSave);
     fileDialog.setNameFilter("PDF (*.pdf)");
+    fileDialog.setDefaultSuffix("pdf");
 
     if (fileDialog.exec())
     {
@@ -127,7 +144,7 @@ void NotesPage::onToPDF(Order order, FilterBy by)
         {
 
             Controller::instance()->createTotalisationPDF(
-                klass.classId(),
+                currentClassID,
                 trimester,
                 files.at(0),
                 schoolYear,
@@ -140,12 +157,17 @@ void NotesPage::onToPDF(Order order, FilterBy by)
 
 void NotesPage::onToExcel(Order order, FilterBy by)
 {
+    if (!hasValidContext())
+    {
+        QMessageBox::warning(this, "Classe requise", "Selectionnez une annee scolaire et une classe.");
+        return;
+    }
     qDebug() << "Create excel";
-    Klass klass = Controller::instance()->klassByName(ui->classCombo->currentText());
     int trimester = ui->trimestreCombo->currentIndex() + 1;
     QFileDialog fileDialog;
     fileDialog.setAcceptMode(QFileDialog::AcceptSave);
     fileDialog.setNameFilter("Excel (*.xlsx)");
+    fileDialog.setDefaultSuffix("xlsx");
 
     if (fileDialog.exec())
     {
@@ -154,7 +176,7 @@ void NotesPage::onToExcel(Order order, FilterBy by)
         {
 
             Controller::instance()->createTotalisationExcel(
-                klass.classId(),
+                currentClassID,
                 trimester,
                 files.at(0),
                 order,
@@ -202,6 +224,25 @@ void NotesPage::setupToolBar()
     QObject::connect(ficheDeNoteAction, &QAction::triggered, this, &NotesPage::onFicheDeNote);
 }
 
+bool NotesPage::hasValidContext() const
+{
+    return currentClassID > 0 && ui->schoolYearCombo->currentIndex() > 0;
+}
+
+void NotesPage::updateActionState()
+{
+    if (!pasteAction)
+        return;
+    const bool enabled = hasValidContext();
+    pasteAction->setEnabled(enabled);
+    computeAction->setEnabled(enabled);
+    createTranscriptAction->setEnabled(enabled);
+    gradesToPDFAction->setEnabled(enabled);
+    gradesToExcelAction->setEnabled(enabled);
+    ficheDeNoteAction->setEnabled(enabled);
+    generalComputeAction->setEnabled(enabled && ui->trimestreCombo->currentIndex() == 2);
+}
+
 void NotesPage::showMoyenneGeneralTab()
 {
     if (generalAVGView == nullptr)
@@ -210,8 +251,8 @@ void NotesPage::showMoyenneGeneralTab()
         tabWidget->addTab(generalAVGView, "Moyenne Générale");
     }
 
-    generalComputeAction->setEnabled(true);
-    generalAVGView->model->loadData(Controller::instance()->klassByName(ui->classCombo->currentText()).classId());
+    generalComputeAction->setEnabled(hasValidContext());
+    generalAVGView->model->loadData(currentClassID);
 }
 
 void NotesPage::hideMoyenneGeneralTab()
@@ -233,6 +274,12 @@ void NotesPage::on_subjectCombo_activated(int index)
 
 void NotesPage::on_saveGradeBtn_clicked()
 {
+    const Subject subject = gradesView->model->subjectFromID(ui->subjectCombo->currentData().toInt());
+    if (!hasValidContext() || currentStudent.id() < 1 || subject.subjectId() < 1)
+    {
+        QMessageBox::warning(this, "Selection requise", "Selectionnez une classe, un eleve et une matiere.");
+        return;
+    }
     if (currentGrade.id > 0)
     {
 
@@ -254,8 +301,8 @@ void NotesPage::on_saveGradeBtn_clicked()
         GradeMetaData grade = currentGrade;
         grade.grade = ui->gradeSpin->value();
         grade.skip = ui->skipSubjectCheck->isChecked();
-        grade.subjectName = ui->subjectCombo->currentText();
-        gradesView->model->addGrade(grade, ui->studentNameEdit->text());
+        grade.subjectName = subject.subjectName();
+        gradesView->model->addGrade(grade, currentStudent, subject);
         Controller::instance()->checkDbError();
         if (grade.id > 0)
             currentGrade = grade;
@@ -265,30 +312,37 @@ void NotesPage::on_saveGradeBtn_clicked()
 void NotesPage::onPaste(bool _)
 {
     Q_UNUSED(_);
+    if (!hasValidContext())
+    {
+        QMessageBox::warning(this, "Classe requise", "Selectionnez une classe avant d'importer des notes.");
+        return;
+    }
     QClipboard *clipboard = QApplication::clipboard();
-    //qDebug() << clipboard->text();
-    int ret = QMessageBox::question(this, "Confirmation", "Coller la list des notes dans la class: " + DatabaseAccess::instance()->classByID(currentClassID).className(), QMessageBox::Ok | QMessageBox::Cancel);
+    const GradeClipboardParseResult result = ClipBoardParser::parseGradeClipboard(clipboard->text());
+    if (result.grades.empty())
+    {
+        QMessageBox::warning(this, "Import impossible", result.errors.join("\n"));
+        return;
+    }
+    QString preview = QString("Classe: %1\nMatiere: %2\nLignes valides: %3\nLignes rejetees: %4")
+                          .arg(DatabaseAccess::instance()->classByID(currentClassID).className(), result.subjectName)
+                          .arg(result.grades.size())
+                          .arg(result.errors.size());
+    if (!result.errors.isEmpty())
+        preview += "\n\n" + result.errors.mid(0, 5).join("\n");
+    int ret = QMessageBox::question(this, "Apercu de l'import", preview + "\n\nContinuer ?",
+                                    QMessageBox::Ok | QMessageBox::Cancel);
     switch (ret)
     {
     case QMessageBox::Ok:{
-        std::vector<ClipboardGrade> grades = ClipBoardParser::parseGradeClipboard(clipboard->text());
-        if (!grades.empty())
-        {
-            QString subjectName = "";
-            try {
-                subjectName = grades.at(0).name;
-            } catch (...) {
-                return;
-            }
-
-            for (std::size_t i = 1; i < grades.size(); ++i) {
-                GradeMetaData gradeMeta;
-                gradeMeta.grade = grades.at(i).grade;
-                gradeMeta.subjectName = subjectName;
-                gradesView->model->studentGradeFromClipboard(gradeMeta, grades.at(i).studentName);
-            }
-            Controller::instance()->checkDbError();
-        }
+        QStringList rejected = result.errors;
+        const int imported = gradesView->model->importGrades(result, rejected);
+        Controller::instance()->checkDbError();
+        QString summary = QString("%1 note(s) importee(s).\n%2 ligne(s) rejetee(s).")
+                              .arg(imported).arg(rejected.size());
+        if (!rejected.isEmpty())
+            summary += "\n\n" + rejected.mid(0, 8).join("\n");
+        QMessageBox::information(this, "Import termine", summary);
         break;
     }
     case QMessageBox::Cancel:
@@ -301,14 +355,16 @@ void NotesPage::onPaste(bool _)
 void NotesPage::onCompute(bool _)
 {
     Q_UNUSED(_);
-    gradesView->model->computeAVG();
+    if (hasValidContext())
+        gradesView->model->computeAVG();
 }
 
 void NotesPage::onComputeFinalAVG(bool _)
 {
     Q_UNUSED(_)
     qDebug() << "Compute finalAVG";
-    generalAVGView->model->computeFinalAVG();
+    if (hasValidContext() && generalAVGView)
+        generalAVGView->model->computeFinalAVG();
 }
 
 void NotesPage::onCreateTranscript(bool _)
@@ -317,9 +373,12 @@ void NotesPage::onCreateTranscript(bool _)
     qDebug() << __FUNCTION__;
     //int currentTrimester = ui->trimestreCombo->currentIndex() + 1;
 
+    if (!hasValidContext())
+        return;
     QFileDialog fileDialog;
     fileDialog.setAcceptMode(QFileDialog::AcceptSave);
     fileDialog.setNameFilter("PDF (*.pdf)");
+    fileDialog.setDefaultSuffix("pdf");
 
     if (fileDialog.exec())
     {
@@ -327,7 +386,7 @@ void NotesPage::onCreateTranscript(bool _)
         if (files.length() > 0)
         {
             Controller::instance()->createTranscript(
-                Controller::instance()->klassByName(ui->classCombo->currentText()).classId(),
+                currentClassID,
                 ui->trimestreCombo->currentIndex() + 1,
                 files.at(0),
                 ui->schoolYearCombo->currentText()
@@ -352,9 +411,12 @@ void NotesPage::onFicheDeNote(bool _)
 {
     Q_UNUSED(_)
 
+    if (!hasValidContext())
+        return;
     QFileDialog fileDialog;
     fileDialog.setAcceptMode(QFileDialog::AcceptSave);
     fileDialog.setNameFilter("PDF (*.pdf)");
+    fileDialog.setDefaultSuffix("pdf");
 
     if (fileDialog.exec())
     {
@@ -368,4 +430,3 @@ void NotesPage::onFicheDeNote(bool _)
         }
     }
 }
-

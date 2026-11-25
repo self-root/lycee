@@ -1,117 +1,123 @@
 #include "clipboardparser.h"
-#include <QStringList>
-#include <QDebug>
+
 #include <QDate>
 #include <QLocale>
+#include <QRegularExpression>
 
 ClipBoardParser::ClipBoardParser() {}
 
-std::vector<ClipboardGrade> ClipBoardParser::parseGradeClipboard(const QString &data)
+GradeClipboardParseResult ClipBoardParser::parseGradeClipboard(const QString &data)
 {
-    std::vector<ClipboardGrade> grades;
-    QStringList rows = data.split("\n");
-    QLocale locale;
+    GradeClipboardParseResult result;
+    QStringList rows = data.split(QRegularExpression("[\\r\\n]+"), Qt::SkipEmptyParts);
+    const QLocale locale;
 
-    try {
-        ClipboardGrade header;
-        QString firstRow = rows.at(0);
-        auto pair = firstRow.split("\t");
-        if (pair.length() == 2)
-        {
-            header.name = pair.at(1);
-            grades.push_back(header);
-            rows.removeFirst();
-        }
-
-    } catch (...) {
-        return grades;
-    }
-
-    for (auto &row : rows)
+    if (rows.isEmpty())
     {
-        ClipboardGrade grade;
-        try {
-            auto nameGradePair = row.split("\t");
-            if (nameGradePair.length() == 2)
-            {
-                bool ok = true;
-                grade.studentName = nameGradePair.at(0);
-                grade.grade = nameGradePair.at(1).toDouble(&ok);
-                if (!ok)
-                    grade.grade = locale.toDouble(nameGradePair.at(1), &ok);
-                grades.push_back(grade);
-            }
-
-        } catch (...) {
-            return grades;
-        }
+        result.errors << "Le presse-papiers est vide.";
+        return result;
     }
 
-    return grades;
+    const QStringList header = rows.takeFirst().split('\t');
+    if (header.size() != 2 || header.at(1).trimmed().isEmpty())
+    {
+        result.errors << "La premiere ligne doit contenir deux colonnes et le nom de la matiere.";
+        return result;
+    }
+    result.subjectName = header.at(1).trimmed();
+
+    int line = 2;
+    for (const QString &row : rows)
+    {
+        const QStringList values = row.split('\t');
+        if (values.size() != 2 || values.at(0).trimmed().isEmpty())
+        {
+            result.errors << QString("Ligne %1: deux colonnes (eleve et note) sont requises.").arg(line++);
+            continue;
+        }
+
+        bool ok = false;
+        double value = values.at(1).trimmed().toDouble(&ok);
+        if (!ok)
+            value = locale.toDouble(values.at(1).trimmed(), &ok);
+        if (!ok)
+        {
+            QString normalized = values.at(1).trimmed();
+            normalized.replace(',', '.');
+            value = normalized.toDouble(&ok);
+        }
+        if (!ok || value < 0.0)
+        {
+            result.errors << QString("Ligne %1: la note '%2' est invalide.")
+                                 .arg(line++)
+                                 .arg(values.at(1).trimmed());
+            continue;
+        }
+
+        ClipboardGrade grade;
+        grade.studentName = values.at(0).trimmed();
+        grade.grade = value;
+        result.grades.push_back(grade);
+        ++line;
+    }
+    return result;
 }
 
-std::vector<Student> ClipBoardParser::parseStudentsClipboard(const QString &data)
+StudentClipboardParseResult ClipBoardParser::parseStudentsClipboard(const QString &data)
 {
-    std::vector<Student> students;
+    StudentClipboardParseResult result;
+    const QStringList rows = data.split(QRegularExpression("[\\r\\n]+"), Qt::SkipEmptyParts);
+    int line = 1;
 
-    QStringList rows = data.split("\n");
-
-    for (auto &row : rows)
+    for (const QString &row : rows)
     {
+        const QStringList values = row.split('\t');
+        if (values.size() != 5 && values.size() != 6)
+        {
+            result.errors << QString("Ligne %1: 5 ou 6 colonnes sont requises.").arg(line++);
+            continue;
+        }
+
+        bool numberOk = false;
+        const int number = values.at(0).trimmed().toInt(&numberOk);
+        const QString name = values.at(1).trimmed();
+        const QString sexe = values.at(2).trimmed().toUpper();
+        const QString situation = values.at(3).trimmed().toUpper();
+        QDate birthDate = QDate::fromString(values.at(4).trimmed(), "dd/MM/yyyy");
+        if (!birthDate.isValid())
+            birthDate = QDate::fromString(values.at(4).trimmed(), "d/M/yyyy");
+
+        QStringList lineErrors;
+        if (!numberOk || number < 1)
+            lineErrors << "numero invalide";
+        if (name.isEmpty())
+            lineErrors << "nom vide";
+        if (sexe != "M" && sexe != "F")
+            lineErrors << "sexe attendu M ou F";
+        if (situation != "P" && situation != "R")
+            lineErrors << "situation attendue P ou R";
+        if (!birthDate.isValid())
+            lineErrors << "date attendue jj/mm/aaaa";
+
+        if (!lineErrors.isEmpty())
+        {
+            result.errors << QString("Ligne %1: %2.").arg(line++).arg(lineErrors.join(", "));
+            continue;
+        }
+
         Student student;
-        QStringList rowValues = row.split("\t");
-        if (rowValues.length() == 6)
-        {
-            student.setNumber(rowValues.at(0).toInt());
-            student.setName(rowValues.at(1));
-            QString sexe = rowValues.at(2);
-            if (sexe == "M")
-                student.setSexe("Garçon");
-            else
-            {
-                student.setSexe("Fille");
-            }
-
-            QString situation = rowValues.at(3);
-            if (situation == "P")
-                student.setSituation("Passant(e)");
-            else
-            {
-                student.setSituation("Redoublant(e)");
-            }
-
-            QDate dateNsiss = QDate::fromString(rowValues.at(4), "dd/MM/yyyy");
-            if (!dateNsiss.isValid())
-                dateNsiss = QDate::fromString(rowValues.at(4), "d/M/yyyy");
-            student.setBirthDay(dateNsiss.toString("dd-MM-yyyy"));
-            student.setMatricule(rowValues.at(5));
-            students.push_back(student);
-        }
-
-        else if (rowValues.length() == 5)
-        {
-            student.setNumber(rowValues.at(0).toInt());
-            student.setName(rowValues.at(1));
-            QString sexe = rowValues.at(2);
-            if (sexe == "M")
-                student.setSexe("Garçon");
-            else
-            {
-                student.setSexe("Fille");
-            }
-
-            QString situation = rowValues.at(3);
-            if (situation == "P")
-                student.setSituation("Passant(e)");
-            else
-            {
-                student.setSituation("Redoublant(e)");
-            }
-
-            QDate dateNsiss = QDate::fromString(rowValues.at(4), "dd/MM/yyyy");
-            student.setBirthDay(dateNsiss.toString("dd-MM-yyyy"));
-        }
+        student.setNumber(number);
+        student.setName(name);
+        student.setSexe(sexe == "M" ? "Garçon" : "Fille");
+        student.setSituation(situation == "P" ? "Passant(e)" : "Redoublant(e)");
+        student.setBirthDay(birthDate.toString("dd-MM-yyyy"));
+        if (values.size() == 6)
+            student.setMatricule(values.at(5).trimmed());
+        result.students.push_back(student);
+        ++line;
     }
 
-    return students;
+    if (rows.isEmpty())
+        result.errors << "Le presse-papiers est vide.";
+    return result;
 }

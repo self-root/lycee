@@ -2,28 +2,36 @@
 #define CLIPBOARDPARSER_H
 
 #include <QString>
+#include <QStringList>
+#include <vector>
+
 #include "student.h"
 
-struct Header
+struct ClipboardGrade
 {
-    Header() {}
-    QString name;
-};
-
-struct ClipboardGrade : public Header
-{
-    ClipboardGrade() {}
     QString studentName;
-    double grade;
+    double grade = 0.0;
 };
 
+struct GradeClipboardParseResult
+{
+    QString subjectName;
+    std::vector<ClipboardGrade> grades;
+    QStringList errors;
+};
+
+struct StudentClipboardParseResult
+{
+    std::vector<Student> students;
+    QStringList errors;
+};
 
 class ClipBoardParser
 {
 public:
     ClipBoardParser();
-    static std::vector<ClipboardGrade> parseGradeClipboard(const QString &data);
-    static std::vector<Student> parseStudentsClipboard(const QString &data);
+    static GradeClipboardParseResult parseGradeClipboard(const QString &data);
+    static StudentClipboardParseResult parseStudentsClipboard(const QString &data);
 };
 
 #endif // CLIPBOARDPARSER_H

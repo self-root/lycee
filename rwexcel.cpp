@@ -7,6 +7,15 @@
 
 #include <xlnt/xlnt.hpp>
 
+namespace {
+void setNumericCell(xlnt::worksheet &sheet, std::size_t column, std::size_t row, double value)
+{
+    xlnt::cell cell = sheet.cell(xlnt::cell_reference(xlnt::column_t(column), row));
+    cell.value(value);
+    cell.number_format(xlnt::number_format("0.00"));
+}
+}
+
 RWExcel::RWExcel(QObject *parent)
     : QObject{parent}
 {
@@ -17,16 +26,17 @@ void RWExcel::createTotalisation(int classID,
                                  int trimester,
                                  QString out,
                                  Order by,
-                                 FilterBy filter)
+                                 FilterBy filter,
+                                 DatabaseAccess *database)
 {
     QMap<QString, QString> schoolInfo_ = Controller::instance()->getSchoolSettings();
-        std::vector<Student> students = DatabaseAccess::instance()->loadStudentsByClass(classID);
-        std::vector<TrimesterAVG> trimesterAVGs = DatabaseAccess::instance()->getTrimesterAVGs(trimester, classID);
-        std::vector<Subject> subjects = DatabaseAccess::instance()->getSubjectByClass(classID);
+        std::vector<Student> students = database->loadStudentsByClass(classID);
+        std::vector<TrimesterAVG> trimesterAVGs = database->getTrimesterAVGs(trimester, classID);
+        std::vector<Subject> subjects = database->getSubjectByClass(classID);
         std::vector<StudentGrade> grades;
 
-        Klass klass = DatabaseAccess::instance()->classByID(classID);
-        DatabaseAccess::instance()->studentGrades(classID, trimester, grades, students, subjects);
+        Klass klass = database->classByID(classID);
+        database->studentGrades(classID, trimester, grades, students, subjects);
         xlnt::workbook wb;
         xlnt::worksheet sheet = wb.active_sheet();
         sheet.title("Totalisation");
@@ -63,11 +73,11 @@ void RWExcel::createTotalisation(int classID,
                     if (grade.skip)
                         sheet.cell(xlnt::cell_reference(xlnt::column_t(j+3), i+2)).value("NC");
                     else
-                        sheet.cell(xlnt::cell_reference(xlnt::column_t(j+3), i+2)).value(Utils::toString(grade.grade).toStdString());
+                        setNumericCell(sheet, j + 3, i + 2, grade.grade);
                 }
                 TrimesterAVG trimAVG = Utils::trimAVGFor(students.at(i), trimesterAVGs);
-                sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 3), i+2)).value(Utils::toString(trimAVG.total).toStdString());
-                sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 4), i+2)).value(Utils::toString(trimAVG.avg).toStdString());
+                setNumericCell(sheet, subjects.size() + 3, i + 2, trimAVG.total);
+                setNumericCell(sheet, subjects.size() + 4, i + 2, trimAVG.avg);
                 sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 5), i+2)).value(trimAVG.rank);
 
             }
@@ -97,10 +107,10 @@ void RWExcel::createTotalisation(int classID,
                     if (grade.skip)
                        sheet.cell(xlnt::cell_reference(xlnt::column_t(j+3), i+2)).value("NC");
                     else
-                        sheet.cell(xlnt::cell_reference(xlnt::column_t(j+3), i+2)).value(Utils::toString(grade.grade).toStdString());
+                        setNumericCell(sheet, j + 3, i + 2, grade.grade);
                 }
-                sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 3), i+2)).value(Utils::toString(trimesterAVGs.at(i).total).toStdString());
-                sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 4), i+2)).value(Utils::toString(trimesterAVGs.at(i).avg).toStdString());
+                setNumericCell(sheet, subjects.size() + 3, i + 2, trimesterAVGs.at(i).total);
+                setNumericCell(sheet, subjects.size() + 4, i + 2, trimesterAVGs.at(i).avg);
                 sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 5), i+2)).value(trimesterAVGs.at(i).rank);
             }
         }
@@ -108,17 +118,21 @@ void RWExcel::createTotalisation(int classID,
         wb.save(out.toStdString());
 }
 
-void RWExcel::createFinalTotalisation(int classID, const QString out, Order order, FilterBy filter)
+void RWExcel::createFinalTotalisation(int classID,
+                                      const QString out,
+                                      Order order,
+                                      FilterBy filter,
+                                      DatabaseAccess *database)
 {
-        std::vector<Student> students = DatabaseAccess::instance()->loadStudentsByClass(classID);
-        std::vector<TrimesterAVG> trimesterAVGs = DatabaseAccess::instance()->getTrimesterAVGs(3, classID);
-        std::vector<Subject> subjects = DatabaseAccess::instance()->getSubjectByClass(classID);
+        std::vector<Student> students = database->loadStudentsByClass(classID);
+        std::vector<TrimesterAVG> trimesterAVGs = database->getTrimesterAVGs(3, classID);
+        std::vector<Subject> subjects = database->getSubjectByClass(classID);
         std::vector<StudentGrade> grades;
-        std::vector<FinalAVG> finals = DatabaseAccess::instance()->getFinalAVGs(classID);
+        std::vector<FinalAVG> finals = database->getFinalAVGs(classID);
         AVGCalculator::sortFinalAVG(finals);
 
-        Klass klass = DatabaseAccess::instance()->classByID(classID);
-        DatabaseAccess::instance()->studentGrades(classID, 3, grades, students, subjects);
+        Klass klass = database->classByID(classID);
+        database->studentGrades(classID, 3, grades, students, subjects);
         xlnt::workbook wb;
         xlnt::worksheet sheet = wb.active_sheet();
         sheet.title("Totalisation");
@@ -155,13 +169,13 @@ void RWExcel::createFinalTotalisation(int classID, const QString out, Order orde
                     if (grade.skip)
                         sheet.cell(xlnt::cell_reference(xlnt::column_t(j+3), i+2)).value("NC");
                     else
-                        sheet.cell(xlnt::cell_reference(xlnt::column_t(j+3), i+2)).value(Utils::toString(grade.grade).toStdString());
+                        setNumericCell(sheet, j + 3, i + 2, grade.grade);
                 }
                 FinalAVG final = Utils::finalAVGFor(students.at(i), finals);
                 TrimesterAVG trimAVG = Utils::trimAVGFor(students.at(i), trimesterAVGs);
-                sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 3), i+2)).value(Utils::toString(trimAVG.total).toStdString());
-                sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 4), i+2)).value(Utils::toString(trimAVG.avg).toStdString());
-                sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 5), i+2)).value(Utils::toString(final.avg()).toStdString());
+                setNumericCell(sheet, subjects.size() + 3, i + 2, trimAVG.total);
+                setNumericCell(sheet, subjects.size() + 4, i + 2, trimAVG.avg);
+                setNumericCell(sheet, subjects.size() + 5, i + 2, final.avg());
                 sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 6), i+2)).value(final.rank());
             }
 
@@ -190,11 +204,12 @@ void RWExcel::createFinalTotalisation(int classID, const QString out, Order orde
                     if (grade.skip)
                        sheet.cell(xlnt::cell_reference(xlnt::column_t(j+3), i+2)).value("NC");
                     else
-                        sheet.cell(xlnt::cell_reference(xlnt::column_t(j+3), i+2)).value(Utils::toString(grade.grade).toStdString());
+                        setNumericCell(sheet, j + 3, i + 2, grade.grade);
                 }
-                sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 3), i+2)).value(Utils::toString(trimesterAVGs.at(i).total).toStdString());
-                sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 4), i+2)).value(Utils::toString(trimesterAVGs.at(i).avg).toStdString());
-                sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 5), i+2)).value(Utils::toString(finals.at(i).avg()).toStdString());
+                const TrimesterAVG trimAVG = Utils::trimAVGFor(student, trimesterAVGs);
+                setNumericCell(sheet, subjects.size() + 3, i + 2, trimAVG.total);
+                setNumericCell(sheet, subjects.size() + 4, i + 2, trimAVG.avg);
+                setNumericCell(sheet, subjects.size() + 5, i + 2, finals.at(i).avg());
                 sheet.cell(xlnt::cell_reference(xlnt::column_t(subjects.size() + 6), i+2)).value(finals.at(i).rank());
             }
         }

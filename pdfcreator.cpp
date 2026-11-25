@@ -8,19 +8,35 @@
 #include <QDate>
 #include <QTemporaryFile>
 #include <QProcess>
+#include <QStandardPaths>
+#include <QFileInfo>
 
 #include "controller.h"
 #include "avgcalculator.h"
 #include "utils.h"
+#include "rwexcel.h"
 
 PdfCreator::PdfCreator(QObject *parent)
     : QObject{parent}
 {
-    dbAccess = new DatabaseAccess;
+}
+
+bool PdfCreator::ensureDatabase()
+{
+    if (!dbAccess)
+        dbAccess = new DatabaseAccess(this);
+    if (dbAccess->hasDbError())
+    {
+        emit exportFailed(dbAccess->getErrorMessage());
+        return false;
+    }
+    return true;
 }
 
 void PdfCreator::createTranscript(int classID, int trimester, QString out, const QString &schoolYear)
 {
+    if (!ensureDatabase())
+        return;
     qDebug() << "Creating PDF...";
     qDebug() << "ClassID: " << classID;
     qDebug() << "trimester: " << trimester;
@@ -118,12 +134,17 @@ void PdfCreator::createTranscript(int classID, int trimester, QString out, const
     QString html_body = html_template.arg(getCss(Controller::instance()->getTranscriptFormatSettings()))
                             .arg(htmlText);
 
-    write(html_body, out);
-    emit pdfCreated();
+    QString error;
+    if (write(html_body, out, &error))
+        emit pdfCreated(out);
+    else
+        emit exportFailed(error);
 }
 
 void PdfCreator::createFinalTranscipt(int classID, QString out, const QString &schoolYear)
 {
+    if (!ensureDatabase())
+        return;
     auto schoolInfo_ = Controller::instance()->getSchoolSettings();
     std::vector<Student> students = dbAccess->loadStudentsByClass(classID);
     std::vector<TrimesterAVG> trimesterAVGs_1 = dbAccess->getTrimesterAVGs(1, classID);
@@ -230,8 +251,11 @@ void PdfCreator::createFinalTranscipt(int classID, QString out, const QString &s
     QString html_body = html_template.arg(getCss(Controller::instance()->getTranscriptFormatSettings()))
                             .arg(htmlText);
 
-    write(html_body, out);
-    emit pdfCreated();
+    QString error;
+    if (write(html_body, out, &error))
+        emit pdfCreated(out);
+    else
+        emit exportFailed(error);
 }
 
 void PdfCreator::createTotalisationPDF(int classID,
@@ -241,6 +265,8 @@ void PdfCreator::createTotalisationPDF(int classID,
                                        Order by,
                                        FilterBy filter)
 {
+    if (!ensureDatabase())
+        return;
     QMap<QString, QString> schoolInfo_ = Controller::instance()->getSchoolSettings();
     std::vector<Student> students = dbAccess->loadStudentsByClass(classID);
     std::vector<TrimesterAVG> trimesterAVGs = dbAccess->getTrimesterAVGs(trimester, classID);
@@ -362,13 +388,17 @@ void PdfCreator::createTotalisationPDF(int classID,
     QString html_body = html_template.arg(getCss(Controller::instance()->getTotalizationFormatSettings()))
                             .arg(htmlText);
 
-    write(html_body, out);
-
-    emit totalisationPDFCreated(out);
+    QString error;
+    if (write(html_body, out, &error))
+        emit totalisationPDFCreated(out);
+    else
+        emit exportFailed(error);
 }
 
 void PdfCreator::createFinalTotalisationPDF(int classID, QString out, const QString &schoolYear, Order order, FilterBy by)
 {
+    if (!ensureDatabase())
+        return;
     auto schoolInfo_ = Controller::instance()->getSchoolSettings();
     std::vector<Student> students = dbAccess->loadStudentsByClass(classID);
     std::vector<TrimesterAVG> trimesterAVGs_1 = dbAccess->getTrimesterAVGs(1, classID);
@@ -502,14 +532,18 @@ void PdfCreator::createFinalTotalisationPDF(int classID, QString out, const QStr
     QString html_body = html_template.arg(getCss(Controller::instance()->getTotalizationFormatSettings()))
                             .arg(htmlText);
 
-    write(html_body, out);
-
-    emit finalTotalisationExcelCreated(out);
+    QString error;
+    if (write(html_body, out, &error))
+        emit finalTotalisationExcelCreated(out);
+    else
+        emit exportFailed(error);
 
 }
 
 void PdfCreator::createFicheDeNote(int classID, const QString &out, const QString &schoolYear, int trimester)
 {
+    if (!ensureDatabase())
+        return;
     auto schoolInfo_ = Controller::instance()->getSchoolSettings();
     std::vector<Student> students = dbAccess->loadStudentsByClass(classID);
     Klass klass = dbAccess->classByID(classID);
@@ -583,10 +617,43 @@ void PdfCreator::createFicheDeNote(int classID, const QString &out, const QStrin
                             .arg(html);
 
 
-    write(html_body, out);
+    QString error;
+    if (write(html_body, out, &error))
+    {
+        emit ficheDeNoteCreated(out);
+        qDebug() << "Fiche de notes created...";
+    }
+    else
+        emit exportFailed(error);
+}
 
-    emit ficheDeNoteCreated(out);
-    qDebug() << "Fiche de notes created...";
+void PdfCreator::createTotalisationExcel(int classID,
+                                         int trimester,
+                                         const QString &out,
+                                         Order order,
+                                         FilterBy filter)
+{
+    if (!ensureDatabase())
+        return;
+    try
+    {
+        if (trimester == 3)
+            RWExcel::createFinalTotalisation(classID, out, order, filter, dbAccess);
+        else
+            RWExcel::createTotalisation(classID, trimester, out, order, filter, dbAccess);
+
+        const QFileInfo output(out);
+        if (!output.exists() || output.size() == 0)
+        {
+            emit exportFailed("L'export Excel n'a produit aucun fichier valide.");
+            return;
+        }
+        emit excelCreated(out);
+    }
+    catch (const std::exception &exception)
+    {
+        emit exportFailed(QString("Echec de l'export Excel: %1").arg(exception.what()));
+    }
 }
 
 QString PdfCreator::appreciation(double grade20)
@@ -613,6 +680,8 @@ QString PdfCreator::appreciation(double grade20)
 
 double PdfCreator::classAverage(const std::vector<TrimesterAVG> &avgs)
 {
+    if (avgs.empty())
+        return 0.0;
     double total = 0.0;
 
     for (const TrimesterAVG &trimavg : avgs)
@@ -660,7 +729,7 @@ QString PdfCreator::getCss(const QMap<QString, QString> &settings)
     return css;
 }
 
-void PdfCreator::write(const QString &htmlBody, const QString &path)
+bool PdfCreator::write(const QString &htmlBody, const QString &path, QString *errorMessage)
 {
     QString temp_html_path = QDir::cleanPath(QDir::tempPath() + QDir::separator() + "XXXXXX.html");
 
@@ -671,9 +740,22 @@ void PdfCreator::write(const QString &htmlBody, const QString &path)
     if (html_temp.open())
     {
         qDebug() << "Temporary file name: " << html_temp.fileName();
-        html_temp.write(htmlBody.toStdString().c_str());
+        if (html_temp.write(htmlBody.toUtf8()) < 0 || !html_temp.flush())
+        {
+            if (errorMessage)
+                *errorMessage = "Impossible d'ecrire le fichier HTML temporaire.";
+            return false;
+        }
         QProcess process;
-        QString program = "wkhtmltopdf.exe";
+        QString program = QStandardPaths::findExecutable("wkhtmltopdf");
+        if (program.isEmpty())
+            program = QStandardPaths::findExecutable("wkhtmltopdf.exe");
+        if (program.isEmpty())
+        {
+            if (errorMessage)
+                *errorMessage = "wkhtmltopdf est introuvable. Installez-le ou ajoutez-le au PATH.";
+            return false;
+        }
         QStringList arguments;
         arguments << "--orientation" << "Landscape";
         arguments << "--margin-top" << "4mm";
@@ -683,20 +765,42 @@ void PdfCreator::write(const QString &htmlBody, const QString &path)
         arguments << html_temp.fileName() << path;
 
         process.start(program, arguments);
-        if (process.waitForStarted())
+        if (process.waitForStarted(5000))
         {
             qDebug() << "Creating PDF using wkhtmltopdf.exe";
-            if (process.waitForFinished())
-                qDebug() << "wkhtmltopdf.exe finished successfully";
-            else
+            if (!process.waitForFinished(120000))
             {
-                qDebug() << "wkhtmltopdf.exe process ended with error";
+                process.kill();
+                process.waitForFinished();
+                if (errorMessage)
+                    *errorMessage = "La creation du PDF a depasse deux minutes et a ete annulee.";
+                return false;
+            }
+            if (process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0)
+            {
+                if (errorMessage)
+                    *errorMessage = QString("wkhtmltopdf a echoue: %1")
+                                        .arg(QString::fromLocal8Bit(process.readAllStandardError()).trimmed());
+                return false;
             }
         }
         else
-            qDebug() << "Could not create pdf using: wkhtmltopdf.exe";
+        {
+            if (errorMessage)
+                *errorMessage = QString("Impossible de demarrer wkhtmltopdf: %1").arg(process.errorString());
+            return false;
+        }
+
+        const QFileInfo output(path);
+        if (!output.exists() || output.size() == 0)
+        {
+            if (errorMessage)
+                *errorMessage = "wkhtmltopdf s'est termine sans produire de fichier PDF valide.";
+            return false;
+        }
+        return true;
     }
-    else {
-        qDebug() << "could not open temporary html file";
-    }
+    if (errorMessage)
+        *errorMessage = "Impossible de creer le fichier HTML temporaire.";
+    return false;
 }
