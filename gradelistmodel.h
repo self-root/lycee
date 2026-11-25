@@ -10,6 +10,7 @@
 #include "subject.h"
 #include "studentgrade.h"
 #include "trimesteravg.h"
+#include "clipboardparser.h"
 
 
 class GradeListModel : public QAbstractTableModel
@@ -36,13 +37,13 @@ public:
 
     double gradeForSubject(const Student &student, const Subject &subject) const;
 
-    GradeMetaData gradeFor(const QString &studentName, const QString &subjectName) const;
+    GradeMetaData gradeFor(const Student &student, const Subject &subject) const;
 
-    Student studentFromName(const QString &studentName);
+    Student studentAt(int row) const;
 
-    Subject subjectFromName(const QString &subjectName);
+    Subject subjectFromID(int subjectID) const;
 
-    void addGrade(GradeMetaData &gradeMeta, const QString &studentName);
+    void addGrade(GradeMetaData &gradeMeta, const Student &student, const Subject &subject);
 
     void updateGrade(const GradeMetaData &gradeMeta);
 
@@ -52,7 +53,7 @@ public:
 
     void setRanks(std::vector<TrimesterAVG> &avgs);
 
-    void studentGradeFromClipboard(GradeMetaData &grade, const QString &studentName);
+    int importGrades(const GradeClipboardParseResult &result, QStringList &rejectedRows);
 
     void updateGrade20();
 

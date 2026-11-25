@@ -12,11 +12,22 @@
 
 #include <QSqlDatabase>
 
+struct GradeImportRecord
+{
+    int studentID = -1;
+    int subjectID = -1;
+    int trimesterID = -1;
+    double grade = 0.0;
+    bool skip = false;
+};
+
 class DatabaseAccess : public QObject
 {
     Q_OBJECT
 public:
     explicit DatabaseAccess(QObject *parent = nullptr);
+    explicit DatabaseAccess(const QString &databasePath, QObject *parent = nullptr);
+    ~DatabaseAccess() override;
 
 private:
     static DatabaseAccess *_instance;
@@ -24,14 +35,18 @@ private:
     QString errorMessage;
     const QString dbName = "lyceedata";
     void setErrorMessage(const QString &error);
-    void initDB(const QSqlDatabase &db);
+    bool initDB();
+    bool configureConnection();
     QSqlDatabase database;
+    QString connectionName;
 
 public:
     static DatabaseAccess *instance();
     bool hasDbError();
     QString getErrorMessage();
-    void openDB();
+    bool openDB();
+
+    bool createBackup(QString *backupPath = nullptr);
 
     QSqlDatabase getDatabase();
 
@@ -39,11 +54,13 @@ public:
 
     std::vector<Klass> gestClasses(const QString &schoolYear);
 
-    void updateStudent(const Student &student, int classID);
+    bool updateStudent(const Student &student, int classID);
 
-    void addStudent(Student &student, int classID);
+    bool addStudent(Student &student, int classID);
 
-    void deleteStudent(const Student &student, int classID);
+    bool deleteStudent(const Student &student, int classID);
+
+    bool addStudents(const std::vector<Student> &students, int classID, int *inserted = nullptr);
 
     std::vector<Subject> getSubjectByClass(int classID);
 
@@ -53,15 +70,15 @@ public:
 
     int schoolYearID(const QString &schoolYear);
 
-    void addSchoolYear(const QString &schoolYear);
+    bool addSchoolYear(const QString &schoolYear);
 
-    void removeSchoolYear(const QString &schoolYear);
+    bool removeSchoolYear(const QString &schoolYear);
 
-    void addClass(const QString &className, int schoolYearID);
+    bool addClass(const QString &className, int schoolYearID);
 
-    void removeKlass(const Klass &klass);
+    bool removeKlass(const Klass &klass);
 
-    void addSubject(Subject &subject, int classID);
+    bool addSubject(Subject &subject, int classID);
 
     void studentGrades(int klassID,
                        int trimester,
@@ -72,33 +89,35 @@ public:
     static std::size_t indexOF(std::vector<Student> &students, int id);
     static std::size_t indexOF(std::vector<Subject> &subjects, int id);
 
-    void updateStudentGrade(const GradeMetaData &gradeMeta);
+    bool updateStudentGrade(const GradeMetaData &gradeMeta);
 
-    void addGrade(GradeMetaData &gradeMeta, int trimesterID, int studentID, int subjectID);
+    bool addGrade(GradeMetaData &gradeMeta, int trimesterID, int studentID, int subjectID);
+
+    bool importGrades(const std::vector<GradeImportRecord> &records, int *imported = nullptr);
 
     void getTrimesterAverages(std::vector<TrimesterAVG> &averages, int classID, int trimesterID);
 
-    void addTrimesterAVG(TrimesterAVG &trimAVG);
+    bool addTrimesterAVG(TrimesterAVG &trimAVG);
 
-    void updateTrimAVG(const TrimesterAVG &trimAVG);
+    bool updateTrimAVG(const TrimesterAVG &trimAVG);
 
-    void updateSubject(const Subject &subject);
+    bool updateSubject(const Subject &subject);
 
-    void removeSubject(const Subject &subject);
+    bool removeSubject(const Subject &subject);
 
     void getGrade(GradeMetaData &grade, int studentID, int subjectID, int trimester);
 
     void trimAVG(TrimesterAVG &avg);
 
-    void updateGrade20(int gradeID, double grade20);
+    bool updateGrade20(int gradeID, double grade20);
 
     std::vector<FinalAVG> getFinalAVGs(int classID);
 
     std::vector<TrimesterAVG> getTrimesterAVGs(int trimester, int klassID);
 
-    void addFinalAverage(FinalAVG &final);
+    bool addFinalAverage(FinalAVG &final);
 
-    void updateFinalAverage(const FinalAVG &final);
+    bool updateFinalAverage(const FinalAVG &final);
 
     Klass classByID(int klassID);
 

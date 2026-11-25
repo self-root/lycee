@@ -31,10 +31,8 @@ Student StudentsTableView::selectedStudent()
     Student student;
     if (currentIndex().row() >= 0)
     {
-        QModelIndex index = currentIndex().siblingAtColumn(1);
-
-        qDebug() << "Current student: " << proxyModel->data(index);
-        student = model->studentByName(proxyModel->data(index).toString());
+        const QModelIndex sourceIndex = proxyModel->mapToSource(currentIndex());
+        student = model->studentAt(sourceIndex.row());
     }
     return student;
 }
@@ -54,6 +52,11 @@ void StudentsTableView::dropEvent(QDropEvent *event)
 
 void StudentsTableView::contextMenuEvent(QContextMenuEvent *event)
 {
+    const bool hasClass = currentClassID > 0;
+    addAction->setEnabled(hasClass);
+    pasteAction->setEnabled(hasClass);
+    editAction->setEnabled(hasClass && currentIndex().isValid());
+    removeAction->setEnabled(hasClass && currentIndex().isValid());
     menu->exec(event->globalPos());
 }
 
@@ -106,13 +109,36 @@ void StudentsTableView::onUpdateAction(bool _)
 void StudentsTableView::onPasteAction(bool _)
 {
     Q_UNUSED(_);
+    if (currentClassID < 1)
+    {
+        QMessageBox::warning(this, "Classe requise", "Selectionnez une classe avant d'importer des eleves.");
+        return;
+    }
     QClipboard *clipboard = QApplication::clipboard();
-    int ret = QMessageBox::question(this, "Confirmation", "Coller la list de la class: " + DatabaseAccess::instance()->classByID(currentClassID).className(), QMessageBox::Ok | QMessageBox::Cancel);
+    const StudentClipboardParseResult result = ClipBoardParser::parseStudentsClipboard(clipboard->text());
+    if (result.students.empty())
+    {
+        QMessageBox::warning(this, "Import impossible", result.errors.join("\n"));
+        return;
+    }
+
+    QString preview = QString("Classe: %1\nLignes valides: %2\nLignes ignorees: %3")
+                          .arg(DatabaseAccess::instance()->classByID(currentClassID).className())
+                          .arg(result.students.size())
+                          .arg(result.errors.size());
+    if (!result.errors.isEmpty())
+        preview += "\n\n" + result.errors.mid(0, 5).join("\n");
+    int ret = QMessageBox::question(this, "Apercu de l'import", preview + "\n\nContinuer ?",
+                                    QMessageBox::Ok | QMessageBox::Cancel);
     switch (ret)
     {
     case QMessageBox::Ok:{
-        model->addStudentsFromClipboard(ClipBoardParser::parseStudentsClipboard(clipboard->text()));
+        const int inserted = model->addStudentsFromClipboard(result.students);
         Controller::instance()->checkDbError();
+        QMessageBox::information(this, "Import termine",
+                                 QString("%1 eleve(s) ajoute(s), %2 doublon(s) ignore(s).")
+                                     .arg(inserted)
+                                     .arg(static_cast<int>(result.students.size()) - inserted));
         break;
     }
     case QMessageBox::Cancel:

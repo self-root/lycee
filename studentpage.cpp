@@ -12,6 +12,7 @@ StudentPage::StudentPage(QWidget *parent)
     tableView = new StudentsTableView;
     ui->studentPageLeftLayout->addWidget(tableView);
     setupActions();
+    updateActionState(false);
     setSchoolYearComboboxValues();
     newStudentForm = new NewStudentForm;
 
@@ -80,20 +81,29 @@ void StudentPage::onScoolYearComboIndexChanged(int i)
     qDebug() << __FUNCTION__ << " " << i << " -> " << schoolYear;
     Controller::instance()->getKlassList(schoolYear);
     ui->classCombo->clear();
-    ui->classCombo->addItem("--");
+    ui->classCombo->addItem("--", -1);
     for (const Klass &klass : Controller::instance()->klasses)
     {
-        ui->classCombo->addItem(klass.className());
+        ui->classCombo->addItem(klass.className(), klass.classId());
     }
+    tableView->loadStudents(-1);
+    updateActionState(false);
 }
 
 void StudentPage::onKlassComboActivated(int index)
 {
-    Q_UNUSED(index)
-    Klass klass = Controller::instance()->klassByName(ui->classCombo->currentText());
-    tableView->loadStudents(klass.classId());
+    const int classID = ui->classCombo->itemData(index).toInt();
+    tableView->loadStudents(classID);
+    updateActionState(classID > 0);
     Controller::instance()->checkDbError();
 
+}
+
+void StudentPage::updateActionState(bool hasClass)
+{
+    addAction->setEnabled(hasClass);
+    editAction->setEnabled(hasClass);
+    removeAction->setEnabled(hasClass);
 }
 
 void StudentPage::on_addStudentBtn_clicked()

@@ -1,0 +1,4 @@
+[submodule "xlnt"]
+	path = xlnt
+	url = https://github.com/self-root/xlnt.git
+	branch = master

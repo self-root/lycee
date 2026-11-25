@@ -30,6 +30,7 @@ private:
 
     void setSchoolYearComboboxValues();
     void setupActions();
+    void updateActionState(bool hasClass);
 
 public slots:
     void onSchoolYearAdded();

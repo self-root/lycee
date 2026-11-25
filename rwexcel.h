@@ -9,6 +9,7 @@
 namespace xlnt {
     class worksheet;
 }
+class DatabaseAccess;
 class RWExcel : public QObject
 {
     Q_OBJECT
@@ -18,8 +19,13 @@ public:
                                     int trimester,
                                     QString out,
                                     Order by,
-                                    FilterBy filter);
-    static void createFinalTotalisation(int classID, const QString out, Order order, FilterBy filter);
+                                    FilterBy filter,
+                                    DatabaseAccess *database);
+    static void createFinalTotalisation(int classID,
+                                        const QString out,
+                                        Order order,
+                                        FilterBy filter,
+                                        DatabaseAccess *database);
     template <typename T>
     static void insertColumn(const std::vector<T> &column, int colIndex, xlnt::worksheet &sheet);
 

@@ -67,6 +67,8 @@ private:
     FinalAVGView *generalAVGView = nullptr;
     void clearGradeForm();
     void setupToolBar();
+    void updateActionState();
+    bool hasValidContext() const;
     QToolBar *toolbar = nullptr;
     QAction *pasteAction = nullptr;
     QAction *computeAction = nullptr;
@@ -76,13 +78,14 @@ private:
     QAction *gradesToExcelAction = nullptr;
     QAction *ficheDeNoteAction = nullptr;
     GradeMetaData currentGrade;
+    Student currentStudent;
     TotalisationCreateForm *totalisationForm = nullptr;
 
 private:
     void showMoyenneGeneralTab();
     void hideMoyenneGeneralTab();
 
-    int currentClassID = 0;
+    int currentClassID = -1;
 
 };
 

@@ -37,6 +37,10 @@ private slots:
 
     void onDatabaseError(const QString &errorMessage);
 
+    void onExportStarted(const QString &description);
+    void onExportSucceeded(const QString &filePath);
+    void onExportFailed(const QString &errorMessage);
+
     void on_klasseBtn_clicked();
 
     void on_notesBtn_clicked();

@@ -11,6 +11,10 @@ class StudentListModel : public QAbstractTableModel
 public:
     explicit StudentListModel(QObject *parent = nullptr);
 
+    enum Roles {
+        StudentIdRole = Qt::UserRole + 1
+    };
+
     // Header:
     QVariant headerData(int section,
                         Qt::Orientation orientation,
@@ -30,9 +34,9 @@ public:
 
     void deleteStudent(const Student &student);
 
-    Student studentByName(const QString &name);
+    Student studentAt(int row) const;
 
-    void addStudentsFromClipboard(const std::vector<Student> &students);
+    int addStudentsFromClipboard(const std::vector<Student> &students);
 
     //bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole) override;
 

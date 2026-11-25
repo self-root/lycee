@@ -17,8 +17,8 @@ void GradesTableView::currentChanged(const QModelIndex &current, const QModelInd
 
     if (current.isValid())
     {
-        QString studentName = current.sibling(current.row(), 0).data().toString();
-        Student student = model->studentFromName(studentName);
+        const QModelIndex sourceIndex = proxyModel->mapToSource(current);
+        Student student = model->studentAt(sourceIndex.row());
         emit studentSelected(student);
     }
 

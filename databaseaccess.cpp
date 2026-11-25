@@ -8,33 +8,46 @@
 #include <QUrl>
 #include <QStandardPaths>
 #include <QDir>
+#include <QDateTime>
+#include <QFileInfo>
 
 DatabaseAccess *DatabaseAccess::_instance = 0;
 DatabaseAccess::DatabaseAccess(QObject *parent)
+    : DatabaseAccess(QString(), parent)
+{}
+
+DatabaseAccess::DatabaseAccess(const QString &databasePath, QObject *parent)
     : QObject{parent}
 {
-    QString connectionName = QThread::currentThread()->objectName();
-    QString dbLocation = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
-    QDir dir;
-    dir.mkpath(dbLocation);
-    dbLocation = QDir::cleanPath(dbLocation + QDir::separator() + dbName);
+    connectionName = QString("lycee-%1-%2")
+                         .arg(reinterpret_cast<quintptr>(QThread::currentThreadId()))
+                         .arg(reinterpret_cast<quintptr>(this));
+    QString dbLocation = databasePath;
+    if (dbLocation.isEmpty())
+    {
+        dbLocation = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
+        QDir dir;
+        dir.mkpath(dbLocation);
+        dbLocation = QDir::cleanPath(dbLocation + QDir::separator() + dbName);
+    }
+    else
+    {
+        QDir().mkpath(QFileInfo(dbLocation).absolutePath());
+    }
     qDebug() << "DB location: " << dbLocation;
     if (!QSqlDatabase::contains(connectionName))
         database = QSqlDatabase::addDatabase("QSQLITE", connectionName);
     else
         database = QSqlDatabase::database(connectionName);
     database.setDatabaseName(dbLocation);
-    database.open();
+    openDB();
+}
 
-    if (!database.isOpen())
-    {
-        setErrorMessage("Error occuredd while opening database lyceedata\n" + database.lastError().text());
-        qDebug() << errorMessage;
-        return;
-
-    }
-
-    initDB(database);
+DatabaseAccess::~DatabaseAccess()
+{
+    database.close();
+    database = QSqlDatabase();
+    QSqlDatabase::removeDatabase(connectionName);
 }
 
 void DatabaseAccess::setErrorMessage(const QString &error)
@@ -43,7 +56,58 @@ void DatabaseAccess::setErrorMessage(const QString &error)
     errorMessage = error;
 }
 
-void DatabaseAccess::initDB(const QSqlDatabase &db)
+bool DatabaseAccess::configureConnection()
+{
+    QSqlQuery query(database);
+    if (!query.exec("PRAGMA foreign_keys = ON"))
+    {
+        setErrorMessage(QString("Impossible d'activer les cles etrangeres: %1")
+                            .arg(query.lastError().text()));
+        return false;
+    }
+
+    if (!query.exec("PRAGMA foreign_keys") || !query.next() || query.value(0).toInt() != 1)
+    {
+        setErrorMessage("SQLite n'a pas active la protection des cles etrangeres.");
+        return false;
+    }
+    return true;
+}
+
+bool DatabaseAccess::createBackup(QString *backupPath)
+{
+    if (!database.isOpen())
+    {
+        setErrorMessage("Sauvegarde impossible: la base de donnees n'est pas ouverte.");
+        return false;
+    }
+
+    const QString backupDirPath = QFileInfo(database.databaseName()).dir().filePath("backups");
+    QDir backupDir;
+    if (!backupDir.mkpath(backupDirPath))
+    {
+        setErrorMessage("Sauvegarde impossible: le dossier de sauvegarde ne peut pas etre cree.");
+        return false;
+    }
+
+    const QString path = QDir(backupDirPath).filePath(
+        QString("lyceedata-%1.sqlite").arg(QDateTime::currentDateTime().toString("yyyyMMdd-HHmmsszzz")));
+    QString escapedPath = QDir::toNativeSeparators(path);
+    escapedPath.replace("'", "''");
+
+    QSqlQuery query(database);
+    if (!query.exec(QString("VACUUM INTO '%1'").arg(escapedPath)))
+    {
+        setErrorMessage(QString("La sauvegarde de la base a echoue: %1")
+                            .arg(query.lastError().text()));
+        return false;
+    }
+    if (backupPath)
+        *backupPath = path;
+    return true;
+}
+
+bool DatabaseAccess::initDB()
 {
 
     const QString SCHOOLYEAR = R"(
@@ -141,26 +205,39 @@ void DatabaseAccess::initDB(const QSqlDatabase &db)
         )
     )";
 
-    if (db.tables().contains("trimester"))
-        return;
+    QSqlQuery versionQuery(database);
+    int version = 0;
+    if (versionQuery.exec("PRAGMA user_version") && versionQuery.next())
+        version = versionQuery.value(0).toInt();
+
+    if (!database.tables().isEmpty() && version < 1 && !createBackup())
+        return false;
+
+    if (!database.transaction())
+    {
+        setErrorMessage(QString("Impossible de demarrer la migration: %1")
+                            .arg(database.lastError().text()));
+        return false;
+    }
 
     QStringList queryList;
     queryList << SCHOOLYEAR << KLASS << STUDENT << SUBJECT << GRADE << FINAL_AVG << TRIMESTER << TRIMAVG;
 
-    QSqlQuery query;
+    QSqlQuery query(database);
     for (const QString &q : queryList)
     {
         if (!query.exec(q))
         {
             setErrorMessage(QString("Database INIT error: %1").arg(query.lastError().text()));
             qDebug() << errorMessage;
-            return;
+            database.rollback();
+            return false;
         }
     }
 
     //TODO: ADD trimesters into database
     QString stringQuery = R"(
-        INSERT INTO "trimester" ("id","trimesterName")
+        INSERT OR IGNORE INTO "trimester" ("id","trimesterName")
         VALUES (1,'Trimestre 1'),
          (2,'Trimestre 2'),
          (3,'Trimestre 3')
@@ -170,8 +247,53 @@ void DatabaseAccess::initDB(const QSqlDatabase &db)
     {
         setErrorMessage(QString("Trimester creation error: %1").arg(query.lastError().text()));
         qDebug() << errorMessage;
+        database.rollback();
+        return false;
     }
 
+    const QStringList migrations = {
+        "DELETE FROM grade WHERE id NOT IN (SELECT MAX(id) FROM grade GROUP BY f_student, f_subject, f_trimester)",
+        "DELETE FROM trimavg WHERE id NOT IN (SELECT MAX(id) FROM trimavg GROUP BY f_student, f_trimester)",
+        "DELETE FROM final_avg WHERE avg_id NOT IN (SELECT MAX(avg_id) FROM final_avg GROUP BY f_student)",
+        "CREATE UNIQUE INDEX IF NOT EXISTS uq_grade_identity ON grade(f_student, f_subject, f_trimester)",
+        "CREATE UNIQUE INDEX IF NOT EXISTS uq_trimavg_identity ON trimavg(f_student, f_trimester)",
+        "CREATE UNIQUE INDEX IF NOT EXISTS uq_finalavg_identity ON final_avg(f_student)",
+        "CREATE INDEX IF NOT EXISTS idx_student_class ON student(f_klass)",
+        "CREATE INDEX IF NOT EXISTS idx_subject_class ON subject(f_klass)",
+        "PRAGMA user_version = 1"
+    };
+    for (const QString &migration : migrations)
+    {
+        if (!query.exec(migration))
+        {
+            setErrorMessage(QString("Migration de la base impossible: %1")
+                                .arg(query.lastError().text()));
+            database.rollback();
+            return false;
+        }
+    }
+
+    if (!database.commit())
+    {
+        setErrorMessage(QString("Validation de la migration impossible: %1")
+                            .arg(database.lastError().text()));
+        database.rollback();
+        return false;
+    }
+
+    if (!query.exec("PRAGMA foreign_key_check"))
+    {
+        setErrorMessage(QString("Verification des cles etrangeres impossible: %1")
+                            .arg(query.lastError().text()));
+        return false;
+    }
+    if (query.next())
+    {
+        setErrorMessage(QString("La base contient une reference invalide dans la table %1 (ligne %2).")
+                            .arg(query.value(0).toString(), query.value(1).toString()));
+        return false;
+    }
+    return true;
 }
 
 DatabaseAccess *DatabaseAccess::instance()
@@ -192,48 +314,20 @@ QString DatabaseAccess::getErrorMessage()
     return errorMessage;
 }
 
-void DatabaseAccess::openDB()
+bool DatabaseAccess::openDB()
 {
-    QString connectionName = QThread::currentThread()->objectName();
-    QString dbLocation = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
-    QDir dir;
-    dir.mkpath(dbLocation);
-    dbLocation = QDir::cleanPath(dbLocation + QDir::separator() + dbName);
-    qDebug() << "DB location: " << dbLocation;
-    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
-    db.setDatabaseName(dbLocation);
-    db.open();
-
-    if (!db.isOpen())
+    if (!database.isOpen() && !database.open())
     {
-        setErrorMessage("Error occuredd while opening database lyceedata\n" + db.lastError().text());
+        setErrorMessage("Erreur lors de l'ouverture de la base lyceedata\n" + database.lastError().text());
         qDebug() << errorMessage;
-        return;
-
+        return false;
     }
-
-    initDB(db);
+    return configureConnection() && initDB();
 }
 
 QSqlDatabase DatabaseAccess::getDatabase()
 {
-    QString connectionName = QThread::currentThread()->objectName();
-    if (!QSqlDatabase::contains(connectionName))
-    {
-        QString dbLocation = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
-        QDir dir;
-        dir.mkpath(dbLocation);
-        dbLocation = QDir::cleanPath(dbLocation + QDir::separator() + dbName);
-        qDebug() << "DB location: " << dbLocation;
-        QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", connectionName);
-        if (!db.open())
-        {
-            setErrorMessage("Error occuredd while opening database lyceedata\n" + db.lastError().text());
-            qDebug() << errorMessage;
-        }
-    }
-
-   return QSqlDatabase::database(connectionName);
+    return database;
 }
 
 std::vector<Student> DatabaseAccess::loadStudentsByClass(int classID)
@@ -271,7 +365,7 @@ std::vector<Student> DatabaseAccess::loadStudentsByClass(int classID)
 std::vector<Klass> DatabaseAccess::gestClasses(const QString &schoolYear)
 {
     std::vector<Klass> klasses;
-    QSqlQuery query;
+    QSqlQuery query(database);
     query.prepare("SELECT * FROM klass INNER JOIN school_year ON school_year.id = klass.f_schoolYear WHERE school_year.schoolYear = :schoolYear");
     query.bindValue(":schoolYear", schoolYear);
     if (query.exec())
@@ -289,10 +383,10 @@ std::vector<Klass> DatabaseAccess::gestClasses(const QString &schoolYear)
     return klasses;
 }
 
-void DatabaseAccess::updateStudent(const Student &student, int classID)
+bool DatabaseAccess::updateStudent(const Student &student, int classID)
 {
     qDebug() << "Updateid: " << student.id() << " classId: " << classID;
-    QSqlQuery query;
+    QSqlQuery query(database);
     query.prepare("UPDATE student SET name = :name, matricule = :matricule, dateNaiss = :dateNaiss, situation = :situation, sexe = :sexe, studentNumber = :studentNumber, finalRank = :finalRank, finalAvg = :finalAvg WHERE id = :id AND f_klass = :classId");
     query.bindValue(":name", student.name());
     query.bindValue(":matricule", student.matricule());
@@ -306,15 +400,17 @@ void DatabaseAccess::updateStudent(const Student &student, int classID)
     query.bindValue(":id", student.id());
 
     if (!query.exec())
+    {
         setErrorMessage(QString("Error while Updating Student in the database. Student name: %1\n%2")
                             .arg(student.name()).arg(query.lastError().text()));
-
-
+        return false;
+    }
+    return query.numRowsAffected() == 1;
 }
 
-void DatabaseAccess::addStudent(Student &student, int classID)
+bool DatabaseAccess::addStudent(Student &student, int classID)
 {
-    QSqlQuery query;
+    QSqlQuery query(database);
     query.prepare("INSERT INTO student(name, matricule, dateNaiss, situation, sexe, studentNumber, f_klass) VALUES (:name, :matricule, :dateNaiss, :situation, :sexe, :studentNumber, :f_klass)");
     query.bindValue(":name", student.name());
     query.bindValue(":matricule", student.matricule());
@@ -326,22 +422,86 @@ void DatabaseAccess::addStudent(Student &student, int classID)
 
 
     if (query.exec())
+    {
         student.setId(query.lastInsertId().toInt());
+        return true;
+    }
     else
         setErrorMessage(QString("Error while Adding new Student to the database. Student name: %1\n%2")
                             .arg(student.name()).arg(query.lastError().text()));
+    return false;
 }
 
-void DatabaseAccess::deleteStudent(const Student &student, int classID)
+bool DatabaseAccess::deleteStudent(const Student &student, int classID)
 {
-    QSqlQuery query;
+    if (!createBackup())
+        return false;
+    QSqlQuery query(database);
     query.prepare("DELETE FROM student WHERE id = :id AND f_klass = :classID");
     query.bindValue(":id", student.id());
     query.bindValue(":classID", classID);
 
     if (!query.exec())
+    {
         setErrorMessage(QString("Error while Deleting Student from the database. Student name: %1\n%2")
                             .arg(student.name()).arg(query.lastError().text()));
+        return false;
+    }
+    return query.numRowsAffected() == 1;
+}
+
+bool DatabaseAccess::addStudents(const std::vector<Student> &students, int classID, int *inserted)
+{
+    if (inserted)
+        *inserted = 0;
+    if (classID < 1 || students.empty())
+        return false;
+    if (!database.transaction())
+    {
+        setErrorMessage(QString("Impossible de demarrer l'import: %1").arg(database.lastError().text()));
+        return false;
+    }
+
+    QSqlQuery query(database);
+    query.prepare(R"(
+        INSERT INTO student(name, matricule, dateNaiss, situation, sexe, studentNumber, f_klass)
+        SELECT :name, :matricule, :dateNaiss, :situation, :sexe, :studentNumber, :f_klass
+        WHERE NOT EXISTS (
+            SELECT 1 FROM student
+            WHERE f_klass = :f_klass
+              AND (studentNumber = :studentNumber OR
+                   (:matricule <> '' AND matricule = :matricule))
+        )
+    )");
+
+    int count = 0;
+    for (const Student &student : students)
+    {
+        query.bindValue(":name", student.name());
+        query.bindValue(":matricule", student.matricule());
+        query.bindValue(":dateNaiss", student.birthDay());
+        query.bindValue(":situation", student.situation());
+        query.bindValue(":sexe", student.sexe());
+        query.bindValue(":studentNumber", student.number());
+        query.bindValue(":f_klass", classID);
+        if (!query.exec())
+        {
+            setErrorMessage(QString("Import des eleves annule: %1").arg(query.lastError().text()));
+            database.rollback();
+            return false;
+        }
+        count += qMax<qint64>(0, query.numRowsAffected());
+    }
+
+    if (!database.commit())
+    {
+        setErrorMessage(QString("Validation de l'import impossible: %1").arg(database.lastError().text()));
+        database.rollback();
+        return false;
+    }
+    if (inserted)
+        *inserted = count;
+    return true;
 }
 
 std::vector<Subject> DatabaseAccess::getSubjectByClass(int classID)
@@ -372,7 +532,7 @@ std::vector<Subject> DatabaseAccess::getSubjectByClass(int classID)
 
 QStringList DatabaseAccess::groupedSubjectNames()
 {
-    QSqlQuery query("SELECT subjectName FROM subject GROUP BY (subjectName)");
+    QSqlQuery query("SELECT subjectName FROM subject GROUP BY (subjectName)", database);
     QStringList subjectNames;
 
     if (query.exec())
@@ -396,7 +556,7 @@ QStringList DatabaseAccess::groupedSubjectNames()
 QStringList DatabaseAccess::schoolYears()
 {
     QStringList schoolY;
-    QSqlQuery query("SELECT * FROM school_year ORDER BY id DESC");
+    QSqlQuery query("SELECT * FROM school_year ORDER BY id DESC", database);
     if (query.exec())
     {
         while (query.next()) {
@@ -413,7 +573,7 @@ QStringList DatabaseAccess::schoolYears()
 
 int DatabaseAccess::schoolYearID(const QString &schoolYear)
 {
-    QSqlQuery query;
+    QSqlQuery query(database);
     query.prepare("SELECT id FROM school_year WHERE schoolYear = :year");
     query.bindValue(":year", schoolYear);
 
@@ -431,9 +591,9 @@ int DatabaseAccess::schoolYearID(const QString &schoolYear)
     return -1;
 }
 
-void DatabaseAccess::addSchoolYear(const QString &schoolYear)
+bool DatabaseAccess::addSchoolYear(const QString &schoolYear)
 {
-    QSqlQuery query;
+    QSqlQuery query(database);
     query.prepare(R"(
         INSERT INTO school_year(schoolYear)
         VALUES (:schoolYear)
@@ -446,12 +606,16 @@ void DatabaseAccess::addSchoolYear(const QString &schoolYear)
         setErrorMessage(QString("Error adding schoolyear %1 in the database\n%2")
                             .arg(schoolYear).arg(query.lastError().text()));
         qDebug() << errorMessage;
+        return false;
     }
+    return true;
 }
 
-void DatabaseAccess::removeSchoolYear(const QString &schoolYear)
+bool DatabaseAccess::removeSchoolYear(const QString &schoolYear)
 {
-    QSqlQuery query;
+    if (!createBackup())
+        return false;
+    QSqlQuery query(database);
     query.prepare("DELETE from school_year WHERE schoolYear = :schoolYear");
     query.bindValue(":schoolYear", schoolYear);
 
@@ -460,24 +624,32 @@ void DatabaseAccess::removeSchoolYear(const QString &schoolYear)
         setErrorMessage(QString("Error removing schoolyear %1 from the database\n%2")
                             .arg(schoolYear).arg(query.lastError().text()));
         qDebug() << errorMessage;
+        return false;
     }
+    return query.numRowsAffected() == 1;
 }
 
-void DatabaseAccess::addClass(const QString &className, int schoolYearID)
+bool DatabaseAccess::addClass(const QString &className, int schoolYearID)
 {
-    QSqlQuery query;
+    QSqlQuery query(database);
     query.prepare(R"(INSERT INTO klass(f_schoolYear, klassName)
                     VALUES (:schoolYear, :klassName))");
     query.bindValue(":schoolYear", schoolYearID);
     query.bindValue(":klassName", className);
 
     if (!query.exec())
+    {
         setErrorMessage(QString("Error while Adding new Class to the database. Class name: %1\n%2")
                             .arg(className).arg(query.lastError().text()));
+        return false;
+    }
+    return true;
 }
 
-void DatabaseAccess::removeKlass(const Klass &klass)
+bool DatabaseAccess::removeKlass(const Klass &klass)
 {
+    if (!createBackup())
+        return false;
     QSqlQuery query(database);
     query.prepare(R"(
         DELETE FROM klass
@@ -488,12 +660,14 @@ void DatabaseAccess::removeKlass(const Klass &klass)
     if (!query.exec())
     {
         setErrorMessage(QString("Classe %1 delete error: %2").arg(klass.className()).arg(query.lastError().text()));
+        return false;
     }
+    return query.numRowsAffected() == 1;
 }
 
-void DatabaseAccess::addSubject(Subject &subject, int classID)
+bool DatabaseAccess::addSubject(Subject &subject, int classID)
 {
-    QSqlQuery query;
+    QSqlQuery query(database);
     query.prepare(R"(INSERT INTO subject(subjectName, subjectCoef, f_klass)
                     VALUES (:subjectName, :subjectCoef, :f_klass))");
 
@@ -505,6 +679,7 @@ void DatabaseAccess::addSubject(Subject &subject, int classID)
     {
         int subjectID = query.lastInsertId().toInt();
         subject.setSubjectId(subjectID);
+        return true;
     }
 
     else
@@ -512,6 +687,7 @@ void DatabaseAccess::addSubject(Subject &subject, int classID)
         setErrorMessage(QString("Error while Adding new Subject to the database. Subject name: %1\n%2")
                             .arg(subject.subjectName()).arg(query.lastError().text()));
     }
+    return false;
 }
 
 void DatabaseAccess::studentGrades(int klassID,
@@ -599,9 +775,9 @@ std::size_t DatabaseAccess::indexOF(std::vector<Subject> &subjects, int id)
     return index;
 }
 
-void DatabaseAccess::updateStudentGrade(const GradeMetaData &gradeMeta)
+bool DatabaseAccess::updateStudentGrade(const GradeMetaData &gradeMeta)
 {
-    QSqlQuery query;
+    QSqlQuery query(database);
     query.prepare(R"(
         UPDATE grade
         SET grade = :grade, grade20 = :grade20, skip = :skip
@@ -614,13 +790,17 @@ void DatabaseAccess::updateStudentGrade(const GradeMetaData &gradeMeta)
     query.bindValue(":id", gradeMeta.id);
 
     if (!query.exec())
+    {
         setErrorMessage(QString("Error while updating student grade. GradeID: %1, SubjectName: %2\n%3")
                             .arg(gradeMeta.id).arg(gradeMeta.subjectName).arg(query.lastError().text()));
+        return false;
+    }
+    return query.numRowsAffected() == 1;
 }
 
-void DatabaseAccess::addGrade(GradeMetaData &gradeMeta, int trimesterID, int studentID, int subjectID)
+bool DatabaseAccess::addGrade(GradeMetaData &gradeMeta, int trimesterID, int studentID, int subjectID)
 {
-    QSqlQuery query;
+    QSqlQuery query(database);
     query.prepare(R"(
         INSERT INTO grade(grade, grade20, f_subject, f_student, f_trimester, skip)
         VALUES (:grade, :grade20, :f_subject, :f_student, :f_trimester, :skip)
@@ -634,18 +814,79 @@ void DatabaseAccess::addGrade(GradeMetaData &gradeMeta, int trimesterID, int stu
     query.bindValue(":skip", gradeMeta.skip);
 
     if (query.exec())
+    {
         gradeMeta.id = query.lastInsertId().toInt();
+        return true;
+    }
 
     else
     {
         setErrorMessage(QString("Error while Adding new student grade to the database. Subject name: %1\n%2")
                             .arg(gradeMeta.subjectName).arg(query.lastError().text()));
     }
+    return false;
+}
+
+bool DatabaseAccess::importGrades(const std::vector<GradeImportRecord> &records, int *imported)
+{
+    if (imported)
+        *imported = 0;
+    if (records.empty())
+        return false;
+    if (!database.transaction())
+    {
+        setErrorMessage(QString("Impossible de demarrer l'import des notes: %1")
+                            .arg(database.lastError().text()));
+        return false;
+    }
+
+    QSqlQuery query(database);
+    query.prepare(R"(
+        INSERT INTO grade(grade, grade20, f_subject, f_student, f_trimester, skip)
+        VALUES (:grade, 0, :subject, :student, :trimester, :skip)
+        ON CONFLICT(f_student, f_subject, f_trimester)
+        DO UPDATE SET grade = excluded.grade, skip = excluded.skip
+    )");
+
+    int count = 0;
+    for (const GradeImportRecord &record : records)
+    {
+        if (record.studentID < 1 || record.subjectID < 1 ||
+            record.trimesterID < 1 || record.trimesterID > 3)
+        {
+            setErrorMessage("Import des notes annule: une ligne contient un identifiant invalide.");
+            database.rollback();
+            return false;
+        }
+        query.bindValue(":grade", record.grade);
+        query.bindValue(":subject", record.subjectID);
+        query.bindValue(":student", record.studentID);
+        query.bindValue(":trimester", record.trimesterID);
+        query.bindValue(":skip", record.skip);
+        if (!query.exec())
+        {
+            setErrorMessage(QString("Import des notes annule: %1").arg(query.lastError().text()));
+            database.rollback();
+            return false;
+        }
+        ++count;
+    }
+
+    if (!database.commit())
+    {
+        setErrorMessage(QString("Validation de l'import des notes impossible: %1")
+                            .arg(database.lastError().text()));
+        database.rollback();
+        return false;
+    }
+    if (imported)
+        *imported = count;
+    return true;
 }
 
 void DatabaseAccess::getTrimesterAverages(std::vector<TrimesterAVG> &averages, int classID, int trimesterID)
 {
-    QSqlQuery query;
+    QSqlQuery query(database);
     query.prepare(R"(
         SELECT trimavg.id as trimAVGid, avg, rank, f_trimester, f_student, total
         FROM trimavg
@@ -678,9 +919,9 @@ void DatabaseAccess::getTrimesterAverages(std::vector<TrimesterAVG> &averages, i
     }
 }
 
-void DatabaseAccess::addTrimesterAVG(TrimesterAVG &trimAVG)
+bool DatabaseAccess::addTrimesterAVG(TrimesterAVG &trimAVG)
 {
-    QSqlQuery query;
+    QSqlQuery query(database);
     query.prepare(R"(
         INSERT INTO trimAVG(avg, rank, f_trimester, f_student, total)
         VALUES (:avg, :rank, :trimester, :f_student, :total)
@@ -695,17 +936,18 @@ void DatabaseAccess::addTrimesterAVG(TrimesterAVG &trimAVG)
     if (query.exec())
     {
         trimAVG.id = query.lastInsertId().toInt();
-        return;
+        return true;
     }
 
     setErrorMessage(QString("Error while Adding new student trimester average to the database.\n%2")
                        .arg(query.lastError().text()));
     qDebug() << errorMessage;
+    return false;
 }
 
-void DatabaseAccess::updateTrimAVG(const TrimesterAVG &trimAVG)
+bool DatabaseAccess::updateTrimAVG(const TrimesterAVG &trimAVG)
 {
-    QSqlQuery query;
+    QSqlQuery query(database);
     query.prepare(R"(
         UPDATE trimavg
         SET avg = :avg, rank = :rank, total = :total
@@ -723,12 +965,14 @@ void DatabaseAccess::updateTrimAVG(const TrimesterAVG &trimAVG)
     {
         setErrorMessage(QString("Trimester average update error: %1").arg(query.lastError().text()));
         qDebug() << errorMessage;
+        return false;
     }
+    return query.numRowsAffected() == 1;
 }
 
-void DatabaseAccess::updateSubject(const Subject &subject)
+bool DatabaseAccess::updateSubject(const Subject &subject)
 {
-    QSqlQuery query;
+    QSqlQuery query(database);
     query.prepare(R"(
         UPDATE subject
         SET subjectName = :subjectName, subjectCoef = :subjectCoef
@@ -744,12 +988,16 @@ void DatabaseAccess::updateSubject(const Subject &subject)
         setErrorMessage(QString("Error while Updating subject: %1.\n%2")
                             .arg(subject.subjectName()).arg(query.lastError().text()));
         qDebug() << errorMessage;
+        return false;
     }
+    return query.numRowsAffected() == 1;
 }
 
-void DatabaseAccess::removeSubject(const Subject &subject)
+bool DatabaseAccess::removeSubject(const Subject &subject)
 {
-    QSqlQuery query;
+    if (!createBackup())
+        return false;
+    QSqlQuery query(database);
     query.prepare(R"(
         DELETE FROM subject WHERE id = :id
     )");
@@ -761,12 +1009,14 @@ void DatabaseAccess::removeSubject(const Subject &subject)
         setErrorMessage(QString("Error while removing subject: %1.\n%2")
                             .arg(subject.subjectName()).arg(query.lastError().text()));
         qDebug() << errorMessage;
+        return false;
     }
+    return query.numRowsAffected() == 1;
 }
 
 void DatabaseAccess::getGrade(GradeMetaData &grade, int studentID, int subjectID, int trimester)
 {
-    QSqlQuery query;
+    QSqlQuery query(database);
     query.prepare(R"(
         SELECT  *
         FROM grade
@@ -796,7 +1046,7 @@ void DatabaseAccess::getGrade(GradeMetaData &grade, int studentID, int subjectID
 
 void DatabaseAccess::trimAVG(TrimesterAVG &avg)
 {
-    QSqlQuery query;
+    QSqlQuery query(database);
     query.prepare(R"(
         SELECT id
         FROM trimavg
@@ -821,9 +1071,9 @@ void DatabaseAccess::trimAVG(TrimesterAVG &avg)
     }
 }
 
-void DatabaseAccess::updateGrade20(int gradeID, double grade20)
+bool DatabaseAccess::updateGrade20(int gradeID, double grade20)
 {
-    QSqlQuery query;
+    QSqlQuery query(database);
     query.prepare(R"(
         UPDATE grade
         SET grade20 = :grade20
@@ -837,7 +1087,9 @@ void DatabaseAccess::updateGrade20(int gradeID, double grade20)
     {
         setErrorMessage(QString("Grade20 update error %1").arg(query.lastError().text()));
         qDebug() << errorMessage;
+        return false;
     }
+    return query.numRowsAffected() == 1;
 }
 
 std::vector<FinalAVG> DatabaseAccess::getFinalAVGs(int classID)
@@ -913,9 +1165,9 @@ std::vector<TrimesterAVG> DatabaseAccess::getTrimesterAVGs(int trimester, int kl
     return avgs;
 }
 
-void DatabaseAccess::addFinalAverage(FinalAVG &final)
+bool DatabaseAccess::addFinalAverage(FinalAVG &final)
 {
-    QSqlQuery query;
+    QSqlQuery query(database);
     query.prepare(R"(
         INSERT INTO final_avg(avg, rank, f_student)
         VALUES (:final, :rank, :f_student)
@@ -925,18 +1177,22 @@ void DatabaseAccess::addFinalAverage(FinalAVG &final)
     query.bindValue(":f_student", final.studentId());
 
     if (query.exec())
+    {
         final.setId(query.lastInsertId().toInt());
+        return true;
+    }
 
     else
     {
         setErrorMessage(QString("Final average insert error %1").arg(query.lastError().text()));
         qDebug() << errorMessage;
     }
+    return false;
 }
 
-void DatabaseAccess::updateFinalAverage(const FinalAVG &final)
+bool DatabaseAccess::updateFinalAverage(const FinalAVG &final)
 {
-    QSqlQuery query;
+    QSqlQuery query(database);
     query.prepare(R"(
         UPDATE final_avg
         SET avg = :final, rank = :rank
@@ -950,7 +1206,9 @@ void DatabaseAccess::updateFinalAverage(const FinalAVG &final)
     {
         setErrorMessage(QString("Final average UPDATE error %1").arg(query.lastError().text()));
         qDebug() << errorMessage;
+        return false;
     }
+    return query.numRowsAffected() == 1;
 }
 
 Klass DatabaseAccess::classByID(int klassID)
@@ -984,7 +1242,7 @@ Klass DatabaseAccess::classByID(int klassID)
 
 int DatabaseAccess::getStudentCount(const QString &schoolYear)
 {
-    QSqlQuery query;
+    QSqlQuery query(database);
     query.prepare(R"(
         SELECT COUNT(student.id)
         FROM student
@@ -1011,7 +1269,7 @@ int DatabaseAccess::getStudentCount(const QString &schoolYear)
 
 int DatabaseAccess::getSexeCount(const QString &schoolYear, const QString &sexe)
 {
-    QSqlQuery query;
+    QSqlQuery query(database);
     query.prepare(R"(
         SELECT COUNT(student.id) FROM student
         INNER JOIN klass ON klass.id = student.f_klass

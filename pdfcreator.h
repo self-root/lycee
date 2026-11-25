@@ -41,11 +41,17 @@ public slots:
                            const QString &out,
                            const QString &schoolYear,
                            int trimester);
+    void createTotalisationExcel(int classID,
+                                 int trimester,
+                                 const QString &out,
+                                 Order order,
+                                 FilterBy filter);
 private:
     QLocale locale;
     QString filePath;
     QMap<QString, QString> schoolInfo;
     DatabaseAccess *dbAccess = nullptr;
+    bool ensureDatabase();
 
     QString appreciation(double grade20);
 
@@ -55,7 +61,7 @@ private:
 
     QString getCss(const QMap<QString, QString> &settings);
 
-    void write(const QString &htmlBody, const QString &path);
+    bool write(const QString &htmlBody, const QString &path, QString *errorMessage);
 
     QString html_template = R"(
         <html lang="fr">
@@ -239,10 +245,12 @@ private:
         </table>
     )";
 signals:
-    void pdfCreated();
+    void pdfCreated(const QString &filePath);
     void totalisationPDFCreated(const QString &filePath);
     void finalTotalisationExcelCreated(const QString &filePath);
     void ficheDeNoteCreated(const QString &filePath);
+    void exportFailed(const QString &errorMessage);
+    void excelCreated(const QString &filePath);
 
 };
 
